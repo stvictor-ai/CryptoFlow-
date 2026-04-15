@@ -1,6 +1,11 @@
 # CryptoFlow · 币账通
 
-> 一个帮你记录每一笔出入金、看清自己到底亏了多少、控制 FOMO 冲动的工具。
+**个人加密货币出入金管理工具** — 记录每一笔资金流动，追踪真实盈亏，分析你的入金行为模式，在 FOMO 冲动时给你一个冷静提醒。单文件部署，无需后端，数据存本地，开箱即用。
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com)
+
+> 不是交易工具，不是行情软件。就是一个**记账本 + 心理医生**，帮你看清数字、管住双手。
 
 ## 为什么做这个？
 
