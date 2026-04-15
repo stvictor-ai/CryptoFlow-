@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0a0d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CryptoFlow">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>CryptoFlow - 出入金统计与分析</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/vue@3.5/dist/vue.global.prod.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/dayjs@1.11/dayjs.min.js"></script>
+<script src="https://unpkg.com/dayjs@1.11/plugin/isoWeek.js"></script>
+<script src="https://unpkg.com/dayjs@1.11/plugin/weekOfYear.js"></script>
+<script src="https://unpkg.com/dayjs@1.11/locale/zh-cn.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4/dist/chart.umd.min.js"></script>
+<style>
+/* ===== RESET & BASE ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:14px;-webkit-tap-highlight-color:transparent;scroll-behavior:smooth}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;transition:background .3s,color .3s;
+}
+input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--overlay-hover);border-radius:3px}
+
+:root{
+  --accent:#f0a820;--accent-dim:rgba(240,168,32,.1);--accent-glow:rgba(240,168,32,.2);
+  --blue:#2bc0e4;--blue-dim:rgba(43,192,228,.08);
+  --purple:#5a7bff;--purple-dim:rgba(90,123,255,.1);
+  --green:#34d399;--green-dim:rgba(52,211,153,.08);
+  --red:#f87171;--red-dim:rgba(248,113,113,.08);
+  --bg:#0a0d12;--panel:#12161e;--card:#181e2a;--input-bg:#0c1018;
+  --border:#1c2636;--border-light:#283848;
+  --text:#e8eaed;--muted:#8b95a5;--dim:#4a5568;
+  --radius:16px;--radius-sm:10px;
+  --overlay:rgba(255,255,255,.02);--overlay-hover:rgba(255,255,255,.04);
+  --shadow:rgba(0,0,0,.3);--shadow-light:rgba(0,0,0,.15);
+}
+[data-theme="light"]{
+  --accent:#c4752c;--accent-dim:rgba(196,117,44,.08);--accent-glow:rgba(196,117,44,.12);
+  --blue:#1a7f8f;--blue-dim:rgba(26,127,143,.06);
+  --purple:#5b6abf;--purple-dim:rgba(91,106,191,.06);
+  --green:#2d8659;--green-dim:rgba(45,134,89,.06);
+  --red:#c0392b;--red-dim:rgba(192,57,43,.06);
+  --bg:#f5f0e8;--panel:#ffffff;--card:#faf8f4;--input-bg:#f0ebe2;
+  --border:#e5ddd0;--border-light:#d6ccbc;
+  --text:#2d2a26;--muted:#6b645a;--dim:#a09888;
+  --overlay:rgba(0,0,0,.02);--overlay-hover:rgba(0,0,0,.04);
+  --shadow:rgba(80,60,30,.06);--shadow-light:rgba(80,60,30,.03);
+}
+
+/* ===== LAYOUT ===== */
+.app{max-width:1200px;margin:0 auto;padding:28px 24px 80px}
+
+/* ===== HERO ===== */
+.hero{
+  display:flex;justify-content:space-between;align-items:center;gap:24px;
+  padding:32px 36px;border-radius:20px;
+  background:linear-gradient(135deg,#161d2e 0%,#0f1420 60%,#141828 100%);
+  border:1px solid var(--border);
+  box-shadow:0 16px 48px var(--shadow),inset 0 1px 0 var(--overlay);
+  margin-bottom:20px;position:relative;overflow:hidden;
+}
+[data-theme="light"] .hero{background:linear-gradient(135deg,#fffcf7 0%,#f7f2ea 60%,#faf6f0 100%);border-color:var(--border)}
+.hero::before{
+  content:'';position:absolute;top:-60%;right:-10%;width:300px;height:300px;
+  background:radial-gradient(circle,rgba(240,168,32,.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-info .kicker{text-transform:uppercase;letter-spacing:.25em;font-size:10px;color:var(--accent);margin-bottom:10px;font-weight:700}
+.hero-info h1{font-size:26px;font-weight:800;margin-bottom:6px;color:var(--text);letter-spacing:-.02em}
+.hero-info .sub{color:var(--muted);font-size:13px;max-width:480px;line-height:1.7}
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ===== BUTTONS ===== */
+.btn{
+  padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;
+  transition:all .18s ease;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px var(--shadow)}
+.btn:active{transform:translateY(0);box-shadow:none}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#e8842a);color:#1b1404;box-shadow:0 2px 12px rgba(240,168,32,.2)}
+.btn-primary:hover{box-shadow:0 6px 24px rgba(240,168,32,.3)}
+.btn-ghost{background:var(--overlay);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.btn-danger:hover{background:rgba(248,113,113,.15)}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:8px}
+.btn-xs{padding:4px 10px;font-size:11px;border-radius:6px}
+
+/* ===== SUMMARY GRID ===== */
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.summary-card{
+  background:var(--card);border:1px solid var(--border);
+  padding:20px 22px;border-radius:var(--radius);position:relative;overflow:hidden;
+  box-shadow:0 4px 16px var(--shadow-light);transition:transform .2s,box-shadow .2s;
+}
+.summary-card:hover{transform:translateY(-2px);box-shadow:0 8px 28px var(--shadow)}
+.summary-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--muted);opacity:.2;border-radius:2px 2px 0 0;
+}
+.summary-card:nth-child(1)::after{background:var(--red);opacity:.6}
+.summary-card:nth-child(2)::after{background:var(--green);opacity:.6}
+.summary-card:nth-child(3)::after{background:var(--accent);opacity:.6}
+.summary-card:nth-child(4)::after{background:var(--blue);opacity:.6}
+.summary-card .label{color:var(--muted);font-size:11px;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.summary-card .value{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ===== PANEL ===== */
+.panel{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:var(--radius);padding:24px;margin-bottom:20px;
+  transition:border-color .2s;
+}
+.panel:hover{border-color:var(--border-light)}
+.panel-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.panel-header h2{font-size:18px;font-weight:700;margin:0}
+.panel-header .hint{color:var(--muted);font-size:12px;margin-top:4px}
+.panel-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ===== FORMS ===== */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end}
+.form-group label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.form-input{
+  width:100%;padding:10px 12px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--input-bg);
+  color:var(--text);transition:border-color .15s;
+}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+.form-input::placeholder{color:var(--dim)}
+select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%238b95a5' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+textarea.form-input{resize:vertical;min-height:80px}
+
+/* ===== FILTERS ===== */
+.filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end;margin-bottom:14px}
+.filter-exchange{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:14px}
+.filter-title{font-size:11px;color:var(--muted);font-weight:600}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:999px;border:1px solid var(--border);
+  background:var(--card);font-size:11px;cursor:pointer;transition:all .15s;
+}
+.chip.active{background:var(--accent-dim);border-color:rgba(255,176,32,.3);color:var(--accent)}
+.pill{
+  padding:6px 14px;border-radius:999px;font-size:11px;font-weight:600;
+  background:var(--purple-dim);color:#c6d3ff;border:1px solid rgba(90,123,255,.3);
+}
+
+/* ===== TABLE ===== */
+.table-wrap{overflow-x:auto;margin-top:8px}
+table{width:100%;border-collapse:collapse;min-width:680px}
+th,td{padding:12px 10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px}
+th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;background:var(--panel)}
+tr:hover td{background:var(--overlay)}
+tbody tr:nth-child(even) td{background:var(--overlay)}
+tbody tr:nth-child(even):hover td{background:var(--overlay-hover)}
+td input,td select{
+  width:100%;padding:6px 8px;border-radius:6px;border:1px solid transparent;
+  background:transparent;color:var(--text);font-size:13px;
+  transition:all .15s;font-variant-numeric:tabular-nums;
+}
+td input:hover,td select:hover{border-color:var(--border)}
+td input:focus,td select:focus{outline:none;border-color:var(--accent);background:var(--input-bg)}
+td select{appearance:none;cursor:pointer}
+tr.row-matched td{background:rgba(43,192,228,.06)!important}
+tr.row-unmatched td{opacity:.35}
+.action-link{color:var(--blue);cursor:pointer;font-size:12px;text-decoration:none;opacity:.7;transition:opacity .15s}
+.action-link:hover{color:var(--accent);opacity:1}
+.action-link.del{color:var(--red)}
+
+/* ===== STATS LAYOUT ===== */
+.stats-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:16px;align-items:start}
+.insight-panel{
+  border:1px solid var(--border);border-radius:14px;
+  background:var(--card);padding:18px;
+}
+.insight-panel h3,.insight-panel h4{margin:0 0 10px;font-size:14px;font-weight:700}
+.insight-panel h4{margin-top:16px;font-size:13px;color:var(--muted)}
+.insight-summary{color:var(--muted);font-size:12px;margin-bottom:10px;line-height:1.7}
+.insight-list{margin:0 0 8px;padding-left:18px}
+.insight-list li{margin-bottom:6px;font-size:12px;line-height:1.6;color:var(--text)}
+.insight-config{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+.insight-config label{font-size:11px;color:var(--muted)}
+.insight-config input{margin-top:4px}
+.compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px}
+.compare-card{border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;background:var(--card)}
+.compare-card p{margin:0;font-size:11px;color:var(--muted)}
+.compare-card strong{display:block;margin-top:6px;font-size:15px;font-variant-numeric:tabular-nums}
+.note-actions{margin-top:8px;display:flex;align-items:center;gap:10px}
+.note-hint{font-size:10px;color:var(--muted)}
+
+/* ===== CHECKLIST ===== */
+.check-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text)}
+.check-item:last-child{border-bottom:none}
+.check-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);flex-shrink:0}
+.check-item.done{color:var(--dim);text-decoration:line-through}
+
+/* ===== SNAPSHOT TABLE ===== */
+.snap-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.snap-row:last-child{border-bottom:none}
+
+/* ===== INLINE SELECT ===== */
+.inline-select{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.inline-select select{min-width:100px}
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:300;
+  padding:12px 24px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;
+  box-shadow:0 8px 24px var(--shadow);animation:toastIn .3s ease;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.toast.success{background:rgba(52,211,153,.92);color:#064e36}
+.toast.error{background:rgba(248,113,113,.92);color:#450a0a}
+.toast.info{background:rgba(90,123,255,.92);color:white}
+
+/* ===== MODAL (mobile add/edit) ===== */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-box{background:var(--panel);border:1px solid var(--border-light);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--dim);border-radius:2px;margin:10px auto 0}
+.modal-head{padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{width:32px;height:32px;border-radius:50%;background:var(--card);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:18px}
+.modal-body{padding:0 20px 20px}
+.modal-foot{padding:12px 20px 24px;display:flex;gap:8px}
+
+/* ===== MOBILE FAB ===== */
+.fab{
+  display:none;position:fixed;bottom:80px;right:20px;
+  width:54px;height:54px;border-radius:16px;
+  background:linear-gradient(135deg,var(--accent),#e8842a);
+  color:#1b1404;font-size:26px;font-weight:700;
+  align-items:center;justify-content:center;
+  box-shadow:0 6px 24px var(--accent-glow);z-index:90;
+  transition:transform .2s,box-shadow .2s;
+}
+.fab:active{transform:scale(.92)}
+
+/* ===== MOBILE TAB BAR ===== */
+.mobile-tabs{
+  display:none;position:fixed;bottom:0;left:0;right:0;
+  background:rgba(18,22,30,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);
+  padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:100;
+}
+[data-theme="light"] .mobile-tabs{background:rgba(245,240,232,.9)}
+.mobile-tabs-inner{display:flex}
+.mob-tab{flex:1;text-align:center;padding:6px 0 4px;font-size:10px;font-weight:600;color:var(--dim);transition:color .2s}
+.mob-tab.active{color:var(--accent)}
+.mob-tab-icon{display:block;font-size:20px;margin-bottom:2px}
+
+/* ===== MOBILE RECORD CARDS ===== */
+.record-cards{display:none}
+.record-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:16px;margin-bottom:10px;position:relative;
+  transition:border-color .15s;
+}
+.record-card:active{border-color:var(--border-light)}
+.record-card.row-matched{border-color:rgba(43,192,228,.25);background:rgba(43,192,228,.04)}
+.record-card.row-unmatched{opacity:.35}
+.record-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.record-card-date{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.record-card-tag{
+  display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;
+}
+.record-card-tag.tag-in{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.record-card-tag.tag-out{background:var(--green-dim);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+.record-card-amount{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;margin-bottom:4px}
+.record-card-rate{font-size:12px;color:var(--dim);margin-bottom:10px}
+.record-card-bottom{display:flex;justify-content:space-between;align-items:center}
+.record-card-meta{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;min-width:0}
+.record-card-meta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.record-card-exchange{
+  background:rgba(255,255,255,.05);padding:2px 8px;border-radius:6px;font-weight:600;
+}
+.record-card-del{
+  color:var(--dim);font-size:12px;padding:6px 10px;border-radius:8px;
+  transition:color .15s,background .15s;flex-shrink:0;
+}
+.record-card-del:active{color:var(--red);background:var(--red-dim)}
+
+/* ===== MOBILE FILTER TOGGLE ===== */
+.filter-toggle-btn{display:none}
+
+/* ===== MOBILE STATS CARDS ===== */
+.stats-cards{display:none}
+.stat-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:14px 16px;margin-bottom:8px;
+}
+.stat-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.stat-card-key{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat-card-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:3px 0}
+.stat-card-row span:last-child{font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ===== BUDGET BAR ===== */
+.budget-bar-wrap{
+  margin-bottom:20px;padding:16px 20px;border-radius:var(--radius);
+  background:var(--card);border:1px solid var(--border);
+}
+.budget-bar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.budget-bar-title{font-size:13px;font-weight:600}
+.budget-bar-nums{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.budget-bar-track{
+  height:8px;border-radius:4px;background:var(--input-bg);overflow:hidden;
+}
+.budget-bar-fill{
+  height:100%;border-radius:4px;transition:width .4s ease,background .3s;
+  background:var(--green);
+}
+.budget-bar-fill.warn{background:var(--accent)}
+.budget-bar-fill.over{background:var(--red)}
+.budget-set{display:flex;align-items:center;gap:8px;margin-top:10px}
+.budget-set input{width:120px}
+
+/* ===== PSYCH TAGS ===== */
+.tag-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.psych-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:999px;font-size:11px;font-weight:600;cursor:default;
+  position:relative;
+}
+.psych-tag.good{background:var(--green-dim);color:var(--green);border:1px solid rgba(52,211,153,.25)}
+.psych-tag.warn{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(240,168,32,.25)}
+.psych-tag.danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.25)}
+.psych-tag.neutral{background:var(--overlay);color:var(--muted);border:1px solid var(--border)}
+.psych-tag .tag-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.psych-tag.good .tag-dot{background:var(--green)}
+.psych-tag.warn .tag-dot{background:var(--accent)}
+.psych-tag.danger .tag-dot{background:var(--red)}
+.psych-tag.neutral .tag-dot{background:var(--muted)}
+.behavior-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.behavior-metric{
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;background:var(--card);
+}
+.behavior-metric p{margin:0;font-size:11px;color:var(--muted)}
+.behavior-metric strong{display:block;margin-top:4px;font-size:16px;font-variant-numeric:tabular-nums}
+
+/* ===== THEME TOGGLE ===== */
+.theme-toggle{
+  width:38px;height:38px;border-radius:50%;
+  background:var(--overlay);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;transition:all .2s;flex-shrink:0;
+}
+.theme-toggle:hover{border-color:var(--accent);background:var(--accent-dim)}
+
+/* ===== COLLAPSIBLE PANEL ===== */
+.panel-collapse-toggle{
+  display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
+}
+.panel-collapse-toggle .arrow{
+  display:inline-block;transition:transform .2s;font-size:12px;color:var(--muted);
+}
+.panel-collapse-toggle .arrow.open{transform:rotate(90deg)}
+.panel-collapse-body{overflow:hidden;transition:max-height .3s ease,opacity .2s;max-height:500px;opacity:1}
+.panel-collapse-body.collapsed{max-height:0;opacity:0;margin:0;padding:0}
+
+/* ===== MONTH GROUP ===== */
+.month-group-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 16px;cursor:pointer;user-select:none;
+  background:var(--overlay);border-bottom:1px solid var(--border);
+  transition:background .15s;
+}
+.month-group-header:hover{background:var(--overlay-hover)}
+.month-group-left{display:flex;align-items:center;gap:10px}
+.month-group-left .arrow{font-size:10px;color:var(--muted);transition:transform .2s;display:inline-block}
+.month-group-left .arrow.open{transform:rotate(90deg)}
+.month-group-key{font-size:14px;font-weight:700}
+.month-group-count{font-size:11px;color:var(--dim);margin-left:4px}
+.month-group-stats{display:flex;gap:6px;font-size:12px;font-variant-numeric:tabular-nums}
+.month-group-stats span{color:var(--muted);display:inline-flex;align-items:center;min-width:110px}
+.month-group-stats .val{font-weight:600;margin-left:4px;min-width:60px;text-align:right;display:inline-block}
+.month-group-body table{margin:0}
+/* mobile month group */
+.month-group-header-mobile{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 14px;margin-bottom:8px;border-radius:12px;cursor:pointer;
+  background:var(--card);border:1px solid var(--border);user-select:none;
+  transition:border-color .15s;
+}
+.month-group-header-mobile:active{border-color:var(--border-light)}
+.month-group-net{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.month-group-sub{font-size:11px;color:var(--dim);margin-top:2px;font-variant-numeric:tabular-nums}
+
+/* ===== CHART ===== */
+.chart-wrap{position:relative;width:100%;max-height:320px;margin-bottom:16px}
+.chart-wrap canvas{width:100%!important;max-height:320px}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:860px){
+  .hero{flex-direction:column;align-items:flex-start;padding:20px}
+  .hero::before{display:none}
+  .stats-layout{grid-template-columns:1fr}
+  .summary-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:680px){
+  .app{padding:14px 12px 100px}
+  .hero{padding:16px;gap:12px;border-radius:14px;margin-bottom:14px}
+  .hero-info .kicker{font-size:9px;margin-bottom:6px}
+  .hero-info h1{font-size:18px}
+  .hero-info .sub{font-size:12px;display:none}
+  .hero-actions{width:100%;gap:6px}
+  .hero-actions .btn{flex:1 1 auto;justify-content:center;font-size:11px;padding:8px 6px}
+  .panel{padding:14px;border-radius:14px;margin-bottom:14px}
+  .summary-grid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+  .summary-card{padding:12px 14px;border-radius:12px}
+  .summary-card .label{font-size:10px;margin-bottom:6px}
+  .summary-card .value{font-size:17px}
+  .summary-card::after{height:2px}
+  .form-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .form-grid .btn{grid-column:span 2}
+  /* hide desktop table, show cards */
+  .table-wrap{display:none}
+  .record-cards{display:block}
+  /* hide desktop stats table, show stat cards */
+  .stats-layout .table-wrap{display:none}
+  .stats-cards{display:block}
+  .stats-layout{grid-template-columns:1fr;gap:14px}
+  /* filter toggle */
+  .filter-toggle-btn{
+    display:flex;align-items:center;gap:6px;
+    padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;
+    background:rgba(255,255,255,.04);border:1px solid var(--border);
+    color:var(--muted);margin-bottom:10px;width:100%;justify-content:center;
+    transition:all .15s;
+  }
+  .filter-toggle-btn.has-filter{color:var(--accent);border-color:rgba(240,168,32,.25)}
+  .filter-collapsed .filter-grid,
+  .filter-collapsed .filter-exchange{display:none!important}
+  .filter-grid{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .filter-exchange{margin-bottom:10px}
+  .chip{padding:4px 8px;font-size:10px}
+  .mobile-tabs{display:block}
+  .fab{display:flex}
+  /* mobile modal */
+  .modal-body .form-group{margin-bottom:12px}
+  .modal-body .form-input{padding:12px;font-size:15px;border-radius:12px}
+  .modal-body label{margin-bottom:6px}
+  /* hide sections based on mobile tab */
+  .app.mob-tab-records .section-not-records,
+  .app.mob-tab-stats .section-not-stats,
+  .app.mob-tab-data .section-not-data{display:none!important}
+  .app.mob-tab-records .section-records,
+  .app.mob-tab-stats .section-stats,
+  .app.mob-tab-data .section-data{display:block!important}
+  .app .summary-grid.section-records,
+  .app .summary-grid.section-stats,
+  .app .summary-grid.section-data{display:grid!important}
+  /* hide quick add form on mobile (use FAB+Modal instead) */
+  .app .quick-add-panel.section-records{display:none!important}
+  /* insight panel mobile */
+  .insight-panel{padding:14px;border-radius:12px}
+  .insight-config{grid-template-columns:repeat(2,1fr);gap:6px}
+  .compare-grid{grid-template-columns:repeat(3,1fr);gap:6px}
+  .compare-card{padding:10px}
+  .compare-card strong{font-size:13px}
+}
+@media(max-width:430px){
+  .form-grid{grid-template-columns:1fr}
+  .form-grid .btn{grid-column:span 1}
+  .filter-grid{grid-template-columns:1fr}
+  .compare-grid{grid-template-columns:1fr}
+  .hero-actions{flex-wrap:wrap}
+  .hero-actions .btn{flex:1 1 45%}
+}
+
+/* ===== UTILS ===== */
+.text-green{color:var(--green)}.text-red{color:var(--red)}.text-blue{color:var(--blue)}.text-muted{color:var(--muted)}
+.mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}
+.mono{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div id="app" :class="['app', mobileTab ? 'mob-tab-'+mobileTab : '']">
+  <!-- Toast -->
+  <div v-if="toast.show" :class="['toast',toast.type]">{{ toast.message }}</div>
+
+  <!-- ===== HERO ===== -->
+  <header class="hero section-records section-stats section-data">
+    <div class="hero-info">
+      <p class="kicker">CryptoFlow</p>
+      <h1>出入金统计与盈亏分析</h1>
+      <p class="sub">记录每一笔出入金，追踪盈亏、分析行为、控制 FOMO，让数据帮你做纪律交易。</p>
+      <p class="sub" style="margin-top:6px;font-style:italic;opacity:.7" id="heroQuote"></p>
+    </div>
+    <div class="hero-actions">
+      <button class="theme-toggle" @click="toggleTheme" :title="theme==='dark'?'切换到白天模式':'切换到夜间模式'">{{ theme==='dark'?'☀️':'🌙' }}</button>
+      <button class="btn btn-primary" @click="$refs.xlsxFile.click()">导入 Excel</button>
+      <button class="btn btn-ghost" @click="$refs.jsonFile.click()">导入 JSON</button>
+      <button class="btn btn-ghost" @click="exportExcel">导出 Excel</button>
+      <button class="btn btn-ghost" @click="exportJSON">备份 JSON</button>
+      <input ref="xlsxFile" type="file" accept=".xlsx,.xls,.csv" hidden @change="importExcel">
+      <input ref="jsonFile" type="file" accept=".json" hidden @change="importJSON">
+    </div>
+  </header>
+
+  <!-- ===== SYNC PANEL ===== -->
+  <section class="panel section-data section-not-records section-not-stats">
+    <div class="panel-header" @click="showSync=!showSync" style="cursor:pointer">
+      <div class="panel-collapse-toggle">
+        <span :class="['arrow',{open:showSync}]">&#9654;</span>
+        <div><h2>同步设置</h2><p class="hint">一次配置，多端自动同步。{{ syncStatus!=='未配置'?' · '+syncStatus:'' }}</p></div>
+      </div>
+      <div class="panel-actions" @click.stop><button class="btn btn-ghost btn-sm" @click="saveSyncConfig">保存配置</button></div>
+    </div>
+    <div :class="['panel-collapse-body',{collapsed:!showSync}]">
+      <div class="form-grid">
+        <div class="form-group"><label>服务器地址</label><input class="form-input" v-model="syncCfg.url" placeholder="http://123.57.x.x:8787"></div>
+        <div class="form-group"><label>账号</label><input class="form-input" v-model="syncCfg.user" placeholder="admin"></div>
+        <div class="form-group"><label>密码</label><input class="form-input" type="password" v-model="syncCfg.pass" placeholder="密码"></div>
+        <div class="form-group"><label>状态</label><input class="form-input" :value="syncStatus" readonly></div>
+        <button class="btn btn-primary btn-sm" @click="syncPush">上传云端</button>
+        <button class="btn btn-ghost btn-sm" @click="syncPull">拉取云端</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SUMMARY ===== -->
+  <div class="summary-grid section-records section-stats section-data">
+    <div class="summary-card"><p class="label">总入金</p><p class="value text-red">{{ fmt(totalIn) }}</p></div>
+    <div class="summary-card"><p class="label">总出金</p><p class="value text-green">{{ fmt(totalOut) }}</p></div>
+    <div class="summary-card"><p class="label">净盈亏</p><p :class="['value', netPL>=0?'text-green':'text-red']">{{ (netPL>=0?'+':'')+fmt(netPL) }}</p></div>
+    <div class="summary-card"><p class="label">回本比例</p><p :class="['value', roi>=1?'text-green':'text-red']">{{ (roi*100).toFixed(1) }}%</p></div>
+  </div>
+
+  <!-- ===== BUDGET BAR ===== -->
+  <div class="budget-bar-wrap section-records section-stats section-data" v-if="monthlyBudget>0">
+    <div class="budget-bar-header">
+      <span class="budget-bar-title">{{ dayjs().format('YYYY-MM') }} 入金预算</span>
+      <span class="budget-bar-nums">{{ fmt(curMonthIn) }} / {{ fmt(monthlyBudget) }}</span>
+    </div>
+    <div class="budget-bar-track">
+      <div :class="['budget-bar-fill',budgetRatio>1?'over':budgetRatio>0.8?'warn':'']" :style="{width:Math.min(budgetRatio*100,100)+'%'}"></div>
+    </div>
+    <div class="budget-set">
+      <input class="form-input" type="number" v-model.number="monthlyBudget" style="width:120px" placeholder="月预算">
+      <button class="btn btn-ghost btn-xs" @click="saveBudget">保存</button>
+      <button class="btn btn-ghost btn-xs" @click="monthlyBudget=0;saveBudget()">关闭预算</button>
+    </div>
+  </div>
+  <div v-else class="section-records section-stats section-data" style="margin-bottom:14px">
+    <button class="btn btn-ghost btn-sm" @click="monthlyBudget=3000" style="width:100%">设置月度入金预算</button>
+  </div>
+
+  <!-- ===== QUICK ADD ===== -->
+  <section class="panel section-records section-not-stats section-not-data quick-add-panel">
+    <h2 style="margin-bottom:14px">快速录入</h2>
+    <div class="form-grid">
+      <div class="form-group"><label>入金时间</label><input class="form-input" type="date" v-model="form.date"></div>
+      <div class="form-group"><label>金额（元）</label><input class="form-input" type="number" step="0.01" v-model.number="form.amount" placeholder="1000" inputmode="decimal"></div>
+      <div class="form-group"><label>汇率</label><input class="form-input" type="number" step="0.0001" v-model="form.rate" placeholder="7.12" inputmode="decimal"></div>
+      <div class="form-group"><label>交易所</label><input class="form-input" v-model="form.exchange" placeholder="欧易" list="dl-ex"><datalist id="dl-ex"><option v-for="ex in allExchanges" :key="ex" :value="ex"></option></datalist></div>
+      <div class="form-group"><label>{{ form.type==='入金'?'入金理由':'出金备注' }}</label><input class="form-input" v-model="form.note" :placeholder="form.type==='入金'?'为什么要入这笔？如：抄底/补仓/FOMO':'收款渠道/备注'"></div>
+      <div class="form-group"><label>类型</label><select class="form-input" v-model="form.type"><option value="入金">入金</option><option value="出金">出金</option></select></div>
+      <button class="btn btn-primary" @click="addEntry">添加记录</button>
+      <button class="btn btn-ghost" @click="copyLast" :disabled="!entries.length">复制上一笔</button>
+    </div>
+  </section>
+
+  <!-- ===== FLOW TABLE ===== -->
+  <section class="panel section-records section-not-stats section-not-data">
+    <div class="panel-header">
+      <div><h2>流水记录</h2><p class="hint">筛选不隐藏，命中高亮，未命中变淡。</p></div>
+      <div class="panel-actions">
+        <span class="pill">{{ matchCount }}/{{ entries.length }} 命中</span>
+        <button class="btn btn-ghost btn-sm" @click="expandAllMonths">展开全部</button>
+        <button class="btn btn-ghost btn-sm" @click="collapseAllMonths">收起全部</button>
+        <button class="btn btn-ghost btn-sm" @click="scrollToFirstMatch">定位首条</button>
+        <button class="btn btn-ghost btn-sm" @click="clearData">清空数据</button>
+      </div>
+    </div>
+    <!-- Filter toggle (mobile) -->
+    <button :class="['filter-toggle-btn',{'has-filter':activeFilterCount>0}]" @click="showFilters=!showFilters">
+      {{ showFilters?'收起筛选':'展开筛选' }}{{ activeFilterCount?' ('+activeFilterCount+')':'' }}
+    </button>
+    <!-- Filters -->
+    <div :class="{'filter-collapsed':!showFilters}">
+      <div class="filter-grid">
+        <div class="form-group"><label>月份</label><select class="form-input" v-model="filters.month"><option value="">全部</option><option v-for="m in allMonths" :key="m" :value="m">{{ m }}</option></select></div>
+        <div class="form-group"><label>类型</label><select class="form-input" v-model="filters.type"><option value="">全部</option><option value="入金">入金</option><option value="出金">出金</option></select></div>
+        <div class="form-group" style="grid-column:span 2"><label>关键词</label><input class="form-input" v-model="filters.keyword" placeholder="交易所/备注关键词"></div>
+        <div class="form-group"><label>起始日期</label><input class="form-input" type="date" v-model="filters.dateFrom"></div>
+        <div class="form-group"><label>结束日期</label><input class="form-input" type="date" v-model="filters.dateTo"></div>
+        <div class="form-group"><label>最小金额</label><input class="form-input" type="number" v-model.number="filters.amountMin" placeholder=">= 0" inputmode="numeric"></div>
+        <div class="form-group"><label>最大金额</label><input class="form-input" type="number" v-model.number="filters.amountMax" placeholder="不限" inputmode="numeric"></div>
+        <button class="btn btn-ghost btn-sm" @click="clearFilters">清空筛选</button>
+      </div>
+      <div class="filter-exchange" v-if="allExchanges.length">
+        <span class="filter-title">交易所</span>
+        <span v-for="ex in allExchanges" :key="ex" :class="['chip',{active:filters.exchanges.includes(ex)}]" @click="toggleEx(ex)">{{ ex }}</span>
+      </div>
+    </div>
+    <!-- Desktop Table (grouped by month) -->
+    <div class="table-wrap">
+      <div v-if="!entries.length" style="text-align:center;color:var(--muted);padding:32px">暂无记录，请添加或导入数据</div>
+      <div v-for="g in groupedEntries" :key="g.key">
+        <div class="month-group-header" @click="toggleMonth(g.key)">
+          <div class="month-group-left">
+            <span :class="['arrow',{open:isMonthOpen(g.key)}]">&#9654;</span>
+            <span class="month-group-key">{{ g.key }}</span>
+            <span class="month-group-count">{{ g.entries.length }} 笔</span>
+          </div>
+          <div class="month-group-stats">
+            <span>入 <span class="val" style="color:var(--red)">{{ fmt(g.inTotal) }}</span></span>
+            <span>出 <span class="val" style="color:var(--green)">{{ fmt(g.outTotal) }}</span></span>
+            <span>净 <span class="val" :style="{color:g.net>=0?'var(--blue)':'var(--red)'}">{{ (g.net>=0?'+':'')+fmt(g.net) }}</span></span>
+          </div>
+        </div>
+        <table v-show="isMonthOpen(g.key)">
+          <thead><tr><th>日期</th><th>汇率</th><th style="text-align:right">金额（元）</th><th>交易所</th><th>理由/备注</th><th>类型</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-for="e in g.entries" :key="e.id" :class="rowClass(e)" :id="'row-'+e.id">
+              <td><input type="date" :value="e.date" @change="updateField(e.id,'date',$event.target.value)"></td>
+              <td><input type="number" step="0.0001" :value="e.rate" @change="updateField(e.id,'rate',$event.target.value)" style="width:80px"></td>
+              <td style="text-align:right"><input type="number" step="0.01" :value="e.amount" @change="updateField(e.id,'amount',$event.target.value)" style="text-align:right;font-weight:700" :style="{color:e.type==='入金'?'var(--red)':'var(--green)'}"></td>
+              <td><input type="text" :value="e.exchange" @change="updateField(e.id,'exchange',$event.target.value)"></td>
+              <td><input type="text" :value="e.note" @change="updateField(e.id,'note',$event.target.value)"></td>
+              <td><select :value="e.type" @change="updateField(e.id,'type',$event.target.value)"><option value="入金">入金</option><option value="出金">出金</option></select></td>
+              <td><span class="action-link del" @click="removeEntry(e.id)">删除</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Mobile Cards (grouped by month) -->
+    <div class="record-cards">
+      <div v-if="!entries.length" style="text-align:center;color:var(--muted);padding:32px;font-size:13px">暂无记录，点击 + 添加</div>
+      <div v-for="g in groupedEntries" :key="g.key">
+        <div class="month-group-header-mobile" @click="toggleMonth(g.key)">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span :class="['arrow',{open:isMonthOpen(g.key)}]" style="font-size:10px;color:var(--muted);display:inline-block;transition:transform .2s">&#9654;</span>
+              <span style="font-weight:700;font-size:15px">{{ g.key }}</span>
+              <span style="font-size:11px;color:var(--dim)">{{ g.entries.length }} 笔</span>
+            </div>
+            <div class="month-group-sub">入 {{ fmt(g.inTotal) }} · 出 {{ fmt(g.outTotal) }}</div>
+          </div>
+          <div class="month-group-net" :style="{color:g.net>=0?'var(--blue)':'var(--red)'}">{{ (g.net>=0?'+':'')+fmt(g.net) }}</div>
+        </div>
+        <template v-if="isMonthOpen(g.key)">
+          <div v-for="e in g.entries" :key="e.id" :class="['record-card',rowClass(e)]" @click="openEditModal(e)">
+            <div class="record-card-top">
+              <span class="record-card-date">{{ e.date }}</span>
+              <span :class="['record-card-tag',e.type==='入金'?'tag-in':'tag-out']">{{ e.type }}</span>
+            </div>
+            <div :class="['record-card-amount']" :style="{color:e.type==='入金'?'var(--red)':'var(--green)'}">{{ fmt(e.amount) }} 元</div>
+            <div class="record-card-rate" v-if="e.rate">汇率 {{ e.rate }}</div>
+            <div class="record-card-bottom">
+              <div class="record-card-meta">
+                <span v-if="e.exchange" class="record-card-exchange">{{ e.exchange }}</span>
+                <span v-if="e.note" style="color:var(--dim)">{{ e.note }}</span>
+              </div>
+              <button class="record-card-del" @click.stop="removeEntry(e.id)">删除</button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PERIOD STATS ===== -->
+  <section class="panel section-stats section-not-records section-not-data">
+    <div class="panel-header">
+      <h2>盈亏统计</h2>
+      <div class="panel-actions">
+        <div class="inline-select"><span>周期</span><select class="form-input" v-model="period" style="min-width:100px"><option value="month">月度</option><option value="week">周</option><option value="year">年度</option></select></div>
+      </div>
+    </div>
+    <!-- Chart -->
+    <div class="chart-wrap">
+      <canvas ref="trendChart"></canvas>
+    </div>
+    <div class="stats-layout">
+      <div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>{{ {month:'月份',week:'周',year:'年份'}[period] }}</th><th style="text-align:right">入金合计</th><th style="text-align:right">出金合计</th><th style="text-align:right">{{ {month:'月度盈亏',week:'周盈亏',year:'年度盈亏'}[period] }}</th><th style="text-align:right">累计盈亏</th></tr></thead>
+            <tbody>
+              <tr v-for="row in periodRows" :key="row.key">
+                <td class="mono">{{ row.key }}</td>
+                <td class="mono" style="text-align:right">{{ fmt(row.inTotal) }}</td>
+                <td class="mono" style="text-align:right">{{ fmt(row.outTotal) }}</td>
+                <td class="mono" style="text-align:right" :style="{color:row.net>=0?'var(--blue)':'var(--red)'}">{{ fmt(row.net) }}</td>
+                <td class="mono" style="text-align:right" :style="{color:row.cum>=0?'var(--blue)':'var(--red)'}">{{ fmt(row.cum) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Mobile stats cards -->
+        <div class="stats-cards">
+          <div v-for="row in periodRows" :key="row.key" class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-key">{{ row.key }}</span>
+              <span class="mono" :style="{color:row.net>=0?'var(--blue)':'var(--red)',fontWeight:700,fontSize:'15px'}">{{ (row.net>=0?'+':'')+fmt(row.net) }}</span>
+            </div>
+            <div class="stat-card-row"><span>入金</span><span style="color:var(--red)">{{ fmt(row.inTotal) }}</span></div>
+            <div class="stat-card-row"><span>出金</span><span style="color:var(--green)">{{ fmt(row.outTotal) }}</span></div>
+            <div class="stat-card-row"><span>累计盈亏</span><span :style="{color:row.cum>=0?'var(--blue)':'var(--red)'}">{{ fmt(row.cum) }}</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- Insight Panel -->
+      <aside class="insight-panel">
+        <h3>建议与复盘</h3>
+        <p class="insight-summary">{{ insightSummary }}</p>
+        <ul class="insight-list"><li v-for="(a,i) in insightAdvice" :key="i">{{ a }}</li></ul>
+        <h4>复盘清单</h4>
+        <div v-for="(item,i) in reviewChecklist" :key="i" :class="['check-item',{done:item.checked}]">
+          <input type="checkbox" v-model="item.checked" @change="saveChecklist">
+          <span>{{ item.text }}</span>
+        </div>
+        <h4>规则设置</h4>
+        <div class="insight-config">
+          <div class="form-group"><label>亏损提醒</label><input class="form-input" type="number" v-model.number="rules.lossWarn"></div>
+          <div class="form-group"><label>亏损强提醒</label><input class="form-input" type="number" v-model.number="rules.lossCritical"></div>
+          <div class="form-group"><label>回收率提醒</label><input class="form-input" type="number" step="0.01" v-model.number="rules.roiWarn"></div>
+          <div class="form-group"><label>入/出倍数</label><input class="form-input" type="number" step="0.1" v-model.number="rules.inflowRatio"></div>
+          <div class="form-group"><label>大额阈值</label><input class="form-input" type="number" v-model.number="rules.largeTx"></div>
+          <div class="form-group"><label>连续亏损</label><input class="form-input" type="number" v-model.number="rules.lossStreak"></div>
+          <button class="btn btn-ghost btn-sm" @click="saveRules">保存规则</button>
+        </div>
+        <h4>复盘笔记</h4>
+        <textarea class="form-input" v-model="reviewNote" placeholder="记录本周期复盘要点" rows="3"></textarea>
+        <div class="note-actions"><button class="btn btn-ghost btn-sm" @click="saveReviewNote">保存笔记</button><small class="note-hint">{{ reviewSavedAt }}</small></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== ADVANCED STATS ===== -->
+  <section class="panel section-stats section-not-records section-not-data">
+    <div class="panel-header"><h2>进阶统计</h2></div>
+    <div class="stats-layout">
+      <div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>交易所</th><th style="text-align:right">入金合计</th><th style="text-align:right">出金合计</th><th style="text-align:right">净盈亏</th></tr></thead>
+            <tbody>
+              <tr v-for="row in exchangeRows" :key="row.exchange">
+                <td style="font-weight:600">{{ row.exchange }}</td>
+                <td class="mono" style="text-align:right">{{ fmt(row.inTotal) }}</td>
+                <td class="mono" style="text-align:right">{{ fmt(row.outTotal) }}</td>
+                <td class="mono" style="text-align:right" :style="{color:row.net>=0?'var(--blue)':'var(--red)'}">{{ fmt(row.net) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="stats-cards">
+          <div v-for="row in exchangeRows" :key="row.exchange" class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-key">{{ row.exchange }}</span>
+              <span class="mono" :style="{color:row.net>=0?'var(--blue)':'var(--red)',fontWeight:700,fontSize:'15px'}">{{ (row.net>=0?'+':'')+fmt(row.net) }}</span>
+            </div>
+            <div class="stat-card-row"><span>入金</span><span style="color:var(--red)">{{ fmt(row.inTotal) }}</span></div>
+            <div class="stat-card-row"><span>出金</span><span style="color:var(--green)">{{ fmt(row.outTotal) }}</span></div>
+          </div>
+        </div>
+      </div>
+      <aside class="insight-panel">
+        <h3>周期对比</h3>
+        <div class="compare-grid">
+          <div class="compare-card"><p>当前周期净盈亏</p><strong :style="{color:periodCompare.curNet>=0?'var(--blue)':'var(--red)'}">{{ fmt(periodCompare.curNet) }}</strong></div>
+          <div class="compare-card"><p>上个周期净盈亏</p><strong :style="{color:periodCompare.prevNet>=0?'var(--blue)':'var(--red)'}">{{ fmt(periodCompare.prevNet) }}</strong></div>
+          <div class="compare-card"><p>环比变化</p><strong :style="{color:periodCompare.delta>=0?'var(--blue)':'var(--red)'}">{{ fmt(periodCompare.delta) }}</strong></div>
+        </div>
+        <h4>大额提醒</h4>
+        <ul class="insight-list">
+          <li v-for="(t,i) in largeTxList" :key="i">{{ t }}</li>
+          <li v-if="!largeTxList.length" style="color:var(--muted)">暂无大额记录</li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== BEHAVIOR ANALYSIS ===== -->
+  <!-- ===== BEHAVIOR ANALYSIS ===== -->
+  <section class="panel section-stats section-not-records section-not-data" v-if="behaviorAnalysis">
+    <div class="panel-header"><h2>入金行为分析</h2></div>
+
+    <!-- Top: Psychology tags + advice (full width) -->
+    <div style="margin-bottom:18px">
+      <h4 style="font-size:12px;color:var(--muted);margin:0 0 10px;text-transform:uppercase;letter-spacing:.3px">心理画像</h4>
+      <div class="tag-list">
+        <span v-for="(t,i) in psychoTags" :key="i" :class="['psych-tag',t.type]" :title="t.tip">
+          <span class="tag-dot"></span>{{ t.text }}
+        </span>
+      </div>
+      <ul class="insight-list" style="margin-top:10px">
+        <li v-for="(a,i) in behaviorAdvice" :key="i">{{ a }}</li>
+      </ul>
+    </div>
+
+    <!-- Middle: Key metrics (full width grid) -->
+    <div class="behavior-metrics" style="margin-bottom:18px">
+      <div class="behavior-metric"><p>平均间隔</p><strong>{{ behaviorAnalysis.avgInterval }} 天</strong></div>
+      <div class="behavior-metric"><p>密集入金</p><strong>{{ behaviorAnalysis.denseCount }} 次</strong></div>
+      <div class="behavior-metric"><p>最大单笔</p><strong>{{ fmt(behaviorAnalysis.maxAmount) }}</strong></div>
+      <div class="behavior-metric"><p>平均金额</p><strong>{{ fmt(behaviorAnalysis.avgAmount) }}</strong></div>
+      <div class="behavior-metric"><p>最长连续入金</p><strong>{{ behaviorAnalysis.maxStreak }} 笔</strong></div>
+      <div class="behavior-metric"><p>总入金笔数</p><strong>{{ behaviorAnalysis.totalIn }} 笔</strong></div>
+    </div>
+
+    <!-- Bottom: Charts side by side -->
+    <div class="stats-layout">
+      <div>
+        <h4 style="font-size:12px;color:var(--muted);margin:0 0 10px;text-transform:uppercase;letter-spacing:.3px">星期分布</h4>
+        <div class="chart-wrap" style="max-height:220px">
+          <canvas ref="weekdayChart"></canvas>
+        </div>
+      </div>
+      <div>
+        <h4 style="font-size:12px;color:var(--muted);margin:0 0 10px;text-transform:uppercase;letter-spacing:.3px">金额区间</h4>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div v-for="r in behaviorAnalysis.ranges" :key="r.label" style="flex:1;min-width:60px;text-align:center;padding:10px 4px;border-radius:8px;border:1px solid var(--border);background:var(--card)">
+            <div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums" :style="{color:r.count?'var(--text)':'var(--dim)'}">{{ r.count }}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">{{ r.label }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SNAPSHOTS ===== -->
+  <section class="panel section-data section-not-records section-not-stats">
+    <div class="panel-header">
+      <h2>数据安全</h2>
+      <div class="panel-actions">
+        <button class="btn btn-ghost btn-sm" @click="createSnap">手动快照</button>
+        <button class="btn btn-danger btn-sm" @click="clearSnaps" v-if="snapshots.length">清空快照</button>
+      </div>
+    </div>
+    <p class="hint mb-12">每次修改自动保存快照，最多 10 份。</p>
+    <div v-if="!snapshots.length" style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center">暂无快照</div>
+    <div v-for="(s,i) in snapshots" :key="i" class="snap-row">
+      <div><div style="font-size:13px;font-weight:600">{{ s.at }}</div><div style="font-size:11px;color:var(--muted)">{{ (s.entries||[]).length }} 条记录</div></div>
+      <button class="btn btn-ghost btn-xs" @click="restoreSnap(i)">恢复</button>
+    </div>
+  </section>
+
+  <!-- ===== MOBILE ADD MODAL ===== -->
+  <div v-if="showMobileAdd" class="modal-mask" @click.self="showMobileAdd=false">
+    <div class="modal-box">
+      <div class="modal-handle"></div>
+      <div class="modal-head"><div class="modal-title">新增记录</div><button class="modal-close" @click="showMobileAdd=false">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>类型</label><select class="form-input" v-model="form.type"><option value="入金">入金</option><option value="出金">出金</option></select></div>
+        <div class="form-group"><label>时间</label><input class="form-input" type="date" v-model="form.date"></div>
+        <div class="form-group"><label>金额（元）</label><input class="form-input" type="number" step="0.01" v-model.number="form.amount" inputmode="decimal"></div>
+        <div class="form-group"><label>汇率</label><input class="form-input" type="number" step="0.0001" v-model="form.rate" inputmode="decimal"></div>
+        <div class="form-group"><label>交易所</label><input class="form-input" v-model="form.exchange" list="dl-ex2"><datalist id="dl-ex2"><option v-for="ex in allExchanges" :key="ex" :value="ex"></option></datalist></div>
+        <div class="form-group"><label>{{ form.type==='入金'?'入金理由':'出金备注' }}</label><input class="form-input" v-model="form.note" :placeholder="form.type==='入金'?'为什么要入这笔？':'收款渠道/备注'"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" style="flex:1" @click="copyLast">复制上一笔</button>
+        <button class="btn btn-primary" style="flex:2" @click="mobileAddEntry" :disabled="!form.amount||form.amount<=0">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MOBILE EDIT MODAL ===== -->
+  <div v-if="editingEntry" class="modal-mask" @click.self="editingEntry=null">
+    <div class="modal-box">
+      <div class="modal-handle"></div>
+      <div class="modal-head"><div class="modal-title">编辑记录</div><button class="modal-close" @click="editingEntry=null">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>类型</label><select class="form-input" v-model="editingEntry.type"><option value="入金">入金</option><option value="出金">出金</option></select></div>
+        <div class="form-group"><label>时间</label><input class="form-input" type="date" v-model="editingEntry.date"></div>
+        <div class="form-group"><label>金额（元）</label><input class="form-input" type="number" step="0.01" v-model.number="editingEntry.amount" inputmode="decimal"></div>
+        <div class="form-group"><label>汇率</label><input class="form-input" type="number" step="0.0001" v-model="editingEntry.rate" inputmode="decimal"></div>
+        <div class="form-group"><label>交易所</label><input class="form-input" v-model="editingEntry.exchange" list="dl-ex3"><datalist id="dl-ex3"><option v-for="ex in allExchanges" :key="ex" :value="ex"></option></datalist></div>
+        <div class="form-group"><label>{{ editingEntry.type==='入金'?'入金理由':'出金备注' }}</label><input class="form-input" v-model="editingEntry.note" :placeholder="editingEntry.type==='入金'?'为什么要入这笔？':'收款渠道/备注'"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-danger" style="flex:1" @click="removeEntry(editingEntry.id);editingEntry=null">删除</button>
+        <button class="btn btn-primary" style="flex:2" @click="saveEditEntry">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile bottom tabs -->
+  <div class="mobile-tabs"><div class="mobile-tabs-inner">
+    <div :class="['mob-tab',{active:mobileTab==='records'}]" @click="mobileTab='records'"><span class="mob-tab-icon">📋</span>记录</div>
+    <div :class="['mob-tab',{active:mobileTab==='stats'}]" @click="mobileTab='stats'"><span class="mob-tab-icon">📊</span>统计</div>
+    <div :class="['mob-tab',{active:mobileTab==='data'}]" @click="mobileTab='data'"><span class="mob-tab-icon">💾</span>数据</div>
+  </div></div>
+  <button class="fab" @click="showMobileAdd=true">+</button>
+</div>
+
+<script>
+dayjs.extend(dayjs_plugin_isoWeek);dayjs.extend(dayjs_plugin_weekOfYear);dayjs.locale('zh-cn')
+
+const SK='crypto_cashflow_entries_v1',SNAP_K='crypto_cashflow_snapshots_v1',RULES_K='crypto_cashflow_rules_v1',REVIEW_K='crypto_cashflow_reviews_v1',SYNC_K='crypto_cashflow_sync_v1'
+const genId=()=>crypto.randomUUID?crypto.randomUUID():('r_'+Date.now()+'_'+Math.random().toString(36).slice(2,6))
+const clone=o=>JSON.parse(JSON.stringify(o))
+
+const PRELOADED=[
+{"日期":"2022.07.01","汇率":"-","金额（元）":"2000","交易所":"币安","备注":"2022年7月入金","类型":"入金"},
+{"日期":"2022.11.01","汇率":"-","金额（元）":"3000","交易所":"欧易","备注":"2022.11-2023.04期间共3次","类型":"入金"},
+{"日期":"2023.03.01","汇率":"-","金额（元）":"1000","交易所":"币安","备注":"2023年3月入金","类型":"入金"},
+{"日期":"2023.12.01","汇率":"-","金额（元）":"2000","交易所":"币安","备注":"2023年12月入金（2次）","类型":"入金"},
+{"日期":"2024.03.11","汇率":"7.45","金额（元）":"10000","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2024.03.21","汇率":"7.43","金额（元）":"10000","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2024.03.31","汇率":"7.32","金额（元）":"20000","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2024.03.31","汇率":"7.32","金额（元）":"10000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2024.08.07","汇率":"7.28","金额（元）":"20000","交易所":"欧易","备注":"","类型":"出金"},
+{"日期":"2024.08.13","汇率":"7.24","金额（元）":"10000","交易所":"欧易","备注":"","类型":"出金"},
+{"日期":"2024.11.06","汇率":"7.17","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.01.18","汇率":"7.25","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.02.01","汇率":"7.26","金额（元）":"1000","交易所":"欧易","备注":"","类型":"出金"},
+{"日期":"2025.02.05","汇率":"7.34","金额（元）":"990.31","交易所":"欧易","备注":"","类型":"出金"},
+{"日期":"2025.02.09","汇率":"7.37","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.02.13","汇率":"7.36","金额（元）":"500","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.02.20","汇率":"7.33","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.02.26","汇率":"7.38","金额（元）":"500","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.03.05","汇率":"7.38","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.03.13","汇率":"7.35","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.03.18","汇率":"7.32","金额（元）":"1000","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2025.03.26","汇率":"7.3","金额（元）":"3500","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2025.04.06","汇率":"7.28","金额（元）":"3640","交易所":"欧易","备注":"","类型":"出金"},
+{"日期":"2025.04.12","汇率":"7.29","金额（元）":"729","交易所":"欧易","备注":"","类型":"出金"},
+{"日期":"2025.04.21","汇率":"7.29","金额（元）":"999.7","交易所":"欧易","备注":"","类型":"出金"},
+{"日期":"2025.04.24","汇率":"7.3","金额（元）":"2000.2","交易所":"欧易","备注":"微信","类型":"出金"},
+{"日期":"2025.05.12","汇率":"7.27","金额（元）":"2000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.05.26","汇率":"7.22","金额（元）":"600","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2025.05.29","汇率":"7.2","金额（元）":"360","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.07.06","汇率":"7.12","金额（元）":"1000","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2025.07.24","汇率":"7.11","金额（元）":"1000","交易所":"欧易","备注":"支付宝","类型":"出金"},
+{"日期":"2025.08.07","汇率":"7.16","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.08.21","汇率":"7.15","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.08.22","汇率":"7.17","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.08.31","汇率":"7.18","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.09.09","汇率":"7.13","金额（元）":"600","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.10.03","汇率":"7.16","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.10.08","汇率":"7.16","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.10.08","汇率":"7.14","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2025.10.10","汇率":"7.15","金额（元）":"500","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2025.10.12","汇率":"7.2","金额（元）":"100","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2025.10.20","汇率":"7.15","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2026.02.01","汇率":"7.01","金额（元）":"1000","交易所":"欧易","备注":"支付宝","类型":"出金"},
+{"日期":"2026.1.10","汇率":"6.88","金额（元）":"500","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2026.1.11","汇率":"6.92","金额（元）":"1000","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2026.1.21","汇率":"6.93","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2026.1.24","汇率":"6.91","金额（元）":"860","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2026.1.27","汇率":"6.94","金额（元）":"500","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2026.1.31","汇率":"7","金额（元）":"1000","交易所":"币安","备注":"","类型":"入金"},
+{"日期":"2026.2.4","汇率":"6.91","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"},
+{"日期":"2026.2.5","汇率":"7","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"}
+]
+
+function normDate(s){
+  if(!s)return'';s=String(s).trim()
+  let m=s.match(/^(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})$/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`
+  m=s.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日?$/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`
+  if(s.length===10&&s.includes('-'))return s;return''
+}
+function normRow(row){
+  let date=normDate(row.date||row['日期']||row['入金时间']||row['时间'])
+  const amt=row.amount||row['金额（元）']||row['金额']||0
+  let rate=row.rate??row['汇率']??'';if(rate==='-')rate=''
+  const exchange=row.exchange||row['交易所']||''
+  const note=row.note||row['备注']||''
+  const type=row.type||row['类型']||'入金'
+  if(!date||!Number(amt))return null
+  return{id:genId(),date,amount:Number(amt),rate:rate===''?'':Number(rate),exchange,note,type}
+}
+
+function defRules(){return{lossWarn:3000,lossCritical:5000,roiWarn:0.6,inflowRatio:1.8,largeTx:5000,lossStreak:2}}
+function isoWeekKey(ds){const p=ds.split('-');if(p.length<3)return'';const d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));const dn=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-dn);const ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));const w=Math.ceil((((d-ys)/864e5)+1)/7);return`${d.getUTCFullYear()}-W${String(w).padStart(2,'0')}`}
+function pKey(ds,period){if(!ds)return'';if(period==='month')return ds.slice(0,7);if(period==='year')return ds.slice(0,4);return isoWeekKey(ds)}
+function todayKey(period){const n=new Date();const ds=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;return pKey(ds,period)}
+function prevKey(period,key){
+  if(!key)return''
+  if(period==='month'){const[y,m]=key.split('-').map(Number);const d=new Date(Date.UTC(y,m-2,1));return`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`}
+  if(period==='year')return String(Number(key)-1)
+  if(period==='week'){const p=key.split('-W');if(p.length!==2)return'';const y=+p[0],w=+p[1];if(w>1)return`${y}-W${String(w-1).padStart(2,'0')}`;return isoWeekKey(`${y-1}-12-28`)}
+  return''
+}
+
+const{createApp,ref,reactive,computed,watch,onMounted}=Vue
+
+createApp({
+setup(){
+  const entries=ref([])
+  const snapshots=ref([])
+  const period=ref('month')
+  const mobileTab=ref('records')
+  const showMobileAdd=ref(false)
+  const showFilters=ref(window.innerWidth>680)
+  const editingEntry=ref(null)
+  const showSync=ref(false)
+
+  // Monthly budget
+  const BUDGET_K='crypto_cashflow_budget'
+  const monthlyBudget=ref(Number(localStorage.getItem(BUDGET_K))||0)
+  function saveBudget(){localStorage.setItem(BUDGET_K,String(monthlyBudget.value));showToast('预算已保存','success')}
+  const curMonthIn=computed(()=>{
+    const mk=dayjs().format('YYYY-MM')
+    return entries.value.filter(e=>e.type==='入金'&&e.date&&e.date.startsWith(mk)).reduce((s,e)=>s+(e.amount||0),0)
+  })
+  const budgetRatio=computed(()=>monthlyBudget.value>0?curMonthIn.value/monthlyBudget.value:0)
+
+  // Theme
+  const THEME_K='crypto_cashflow_theme'
+  const savedTheme=localStorage.getItem(THEME_K)
+  const defaultTheme=savedTheme||(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')
+  const theme=ref(defaultTheme)
+  function applyTheme(t){
+    document.documentElement.dataset.theme=t
+    const mc=document.querySelector('meta[name="theme-color"]')
+    if(mc)mc.content=t==='light'?'#f5f0e8':'#0a0d12'
+  }
+  applyTheme(defaultTheme)
+  function toggleTheme(){
+    theme.value=theme.value==='dark'?'light':'dark'
+    applyTheme(theme.value)
+    localStorage.setItem(THEME_K,theme.value)
+    Vue.nextTick(renderChart)
+  }
+  const toast=reactive({show:false,message:'',type:'info'})
+  const form=reactive({date:dayjs().format('YYYY-MM-DD'),amount:'',rate:'',exchange:'',note:'',type:'入金'})
+  const filters=reactive({month:'',type:'',keyword:'',dateFrom:'',dateTo:'',amountMin:'',amountMax:'',exchanges:[]})
+  const rules=reactive(defRules())
+  const syncCfg=reactive({url:'',user:'',pass:''})
+  const syncStatus=ref('未配置')
+  const reviewNote=ref('')
+  const reviewSavedAt=ref('')
+  let toastT=null
+
+  // Persistence
+  function load(){
+    try{const r=localStorage.getItem(SK);if(r)entries.value=JSON.parse(r)}catch(e){}
+    if(!entries.value.length){entries.value=PRELOADED.map(normRow).filter(Boolean).sort((a,b)=>a.date<b.date?1:-1);save()}
+    try{const r=localStorage.getItem(SNAP_K);if(r)snapshots.value=JSON.parse(r)}catch(e){}
+    try{const r=localStorage.getItem(RULES_K);if(r)Object.assign(rules,{...defRules(),...JSON.parse(r)})}catch(e){}
+    try{const r=localStorage.getItem(SYNC_K);if(r)Object.assign(syncCfg,JSON.parse(r));syncStatus.value=syncCfg.url?'已配置':'未配置'}catch(e){}
+    loadReview()
+  }
+  function save(){localStorage.setItem(SK,JSON.stringify(entries.value))}
+  function snap(){
+    const s={at:new Date().toISOString(),entries:clone(entries.value)}
+    snapshots.value.unshift(s);if(snapshots.value.length>10)snapshots.value=snapshots.value.slice(0,10)
+    localStorage.setItem(SNAP_K,JSON.stringify(snapshots.value))
+  }
+
+  function showToast(msg,type='info'){toast.message=msg;toast.type=type;toast.show=true;if(toastT)clearTimeout(toastT);toastT=setTimeout(()=>toast.show=false,2500)}
+  function fmt(v){if(v==null||isNaN(v))return'-';return Number(v).toLocaleString('zh-CN',{maximumFractionDigits:2})}
+
+  // Computed
+  const sortedEntries=computed(()=>[...entries.value].sort((a,b)=>a.date<b.date?1:-1))
+  const allExchanges=computed(()=>[...new Set(entries.value.map(e=>e.exchange).filter(Boolean))].sort())
+  const allMonths=computed(()=>[...new Set(entries.value.map(e=>e.date?e.date.slice(0,7):'').filter(Boolean))].sort())
+  const totalIn=computed(()=>entries.value.filter(e=>e.type==='入金').reduce((s,e)=>s+(e.amount||0),0))
+  const totalOut=computed(()=>entries.value.filter(e=>e.type==='出金').reduce((s,e)=>s+(e.amount||0),0))
+  const netPL=computed(()=>totalOut.value-totalIn.value)
+  const roi=computed(()=>totalIn.value?totalOut.value/totalIn.value:0)
+
+  // Filters
+  function matchEntry(e){
+    if(filters.month&&e.date&&e.date.slice(0,7)!==filters.month)return false
+    if(filters.type&&e.type!==filters.type)return false
+    if(filters.keyword){const k=filters.keyword.toLowerCase();if(!(`${e.exchange} ${e.note}`).toLowerCase().includes(k))return false}
+    if(filters.dateFrom&&e.date<filters.dateFrom)return false
+    if(filters.dateTo&&e.date>filters.dateTo)return false
+    if(filters.amountMin&&e.amount<filters.amountMin)return false
+    if(filters.amountMax&&e.amount>filters.amountMax)return false
+    if(filters.exchanges.length&&!filters.exchanges.includes(e.exchange))return false
+    return true
+  }
+  const matchedIds=computed(()=>new Set(entries.value.filter(matchEntry).map(e=>e.id)))
+  const matchCount=computed(()=>matchedIds.value.size)
+  function rowClass(e){const hasFilter=filters.month||filters.type||filters.keyword||filters.dateFrom||filters.dateTo||filters.amountMin||filters.amountMax||filters.exchanges.length;if(!hasFilter)return'';return matchedIds.value.has(e.id)?'row-matched':'row-unmatched'}
+  function toggleEx(ex){const i=filters.exchanges.indexOf(ex);i>=0?filters.exchanges.splice(i,1):filters.exchanges.push(ex)}
+  function clearFilters(){filters.month='';filters.type='';filters.keyword='';filters.dateFrom='';filters.dateTo='';filters.amountMin='';filters.amountMax='';filters.exchanges=[]}
+  function scrollToFirstMatch(){const id=[...matchedIds.value][0];if(!id){showToast('无匹配','info');return};const el=document.getElementById('row-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'})}
+  // Month groups for flow records
+  const expandedMonths=ref(new Set())
+  const groupedEntries=computed(()=>{
+    const map=new Map()
+    sortedEntries.value.forEach(e=>{
+      const m=e.date?e.date.slice(0,7):'未知'
+      if(!map.has(m))map.set(m,{key:m,entries:[],inTotal:0,outTotal:0})
+      const g=map.get(m);g.entries.push(e)
+      if(e.type==='入金')g.inTotal+=e.amount||0;else g.outTotal+=e.amount||0
+    })
+    return[...map.values()].sort((a,b)=>b.key.localeCompare(a.key)).map(g=>({...g,net:g.outTotal-g.inTotal}))
+  })
+  function toggleMonth(m){const s=expandedMonths.value;if(s.has(m))s.delete(m);else s.add(m);expandedMonths.value=new Set(s)}
+  function isMonthOpen(m){return expandedMonths.value.has(m)}
+  function expandAllMonths(){expandedMonths.value=new Set(groupedEntries.value.map(g=>g.key))}
+  function collapseAllMonths(){expandedMonths.value=new Set()}
+
+  const activeFilterCount=computed(()=>{let n=0;if(filters.month)n++;if(filters.type)n++;if(filters.keyword)n++;if(filters.dateFrom)n++;if(filters.dateTo)n++;if(filters.amountMin)n++;if(filters.amountMax)n++;if(filters.exchanges.length)n++;return n})
+  function openEditModal(e){editingEntry.value={...e}}
+  function saveEditEntry(){
+    if(!editingEntry.value)return
+    const e=entries.value.find(x=>x.id===editingEntry.value.id)
+    if(!e){editingEntry.value=null;return}
+    e.date=editingEntry.value.date;e.amount=Number(editingEntry.value.amount)||0
+    e.rate=editingEntry.value.rate===''?'':Number(editingEntry.value.rate)
+    e.exchange=(editingEntry.value.exchange||'').trim();e.note=(editingEntry.value.note||'').trim()
+    e.type=editingEntry.value.type;snap();save();editingEntry.value=null;showToast('已保存','success')
+  }
+
+  // CRUD
+  // Calm-down warnings for deposits
+  function getDepositWarnings(){
+    if(form.type!=='入金')return[]
+    const warnings=[]
+    const now=dayjs(form.date||undefined)
+    const recent=entries.value.filter(e=>e.type==='入金').sort((a,b)=>b.date.localeCompare(a.date))
+
+    // Check interval since last deposit
+    if(recent.length){
+      const lastDate=dayjs(recent[0].date)
+      const gap=now.diff(lastDate,'day')
+      if(gap>=0&&gap<=1)warnings.push('距上次入金仅 '+gap+' 天，建议冷静 24 小时再操作')
+      else if(gap>=0&&gap<=3)warnings.push('距上次入金仅 '+gap+' 天，注意控制入金频率')
+    }
+
+    // Check this week deposit count
+    const weekStart=now.startOf('week')
+    const weekDeposits=entries.value.filter(e=>e.type==='入金'&&e.date>=weekStart.format('YYYY-MM-DD')&&e.date<=now.format('YYYY-MM-DD'))
+    if(weekDeposits.length>=3)warnings.push('本周已入金 '+weekDeposits.length+' 次，是否在追单？')
+
+    // Check this month vs budget
+    const monthKey=now.format('YYYY-MM')
+    const monthIn=entries.value.filter(e=>e.type==='入金'&&e.date&&e.date.startsWith(monthKey)).reduce((s,e)=>s+(e.amount||0),0)
+    const budget=monthlyBudget.value
+    if(budget>0){
+      const afterAdd=monthIn+Number(form.amount||0)
+      if(afterAdd>budget)warnings.push('本月入金将达 '+fmt(afterAdd)+'，超出预算 '+fmt(budget))
+      else if(afterAdd>budget*0.8)warnings.push('本月入金将达 '+fmt(afterAdd)+'，接近预算上限 '+fmt(budget))
+    }
+
+    // Check amount vs average
+    if(recent.length>=3){
+      const avg=recent.slice(0,10).reduce((s,e)=>s+(e.amount||0),0)/Math.min(recent.length,10)
+      if(Number(form.amount)>avg*2)warnings.push('本笔金额 '+fmt(form.amount)+' 是近期均值 '+fmt(avg)+' 的 '+(form.amount/avg).toFixed(1)+' 倍')
+    }
+
+    return warnings
+  }
+
+  function addEntry(){
+    if(!form.amount||form.amount<=0){showToast('请输入有效金额','error');return}
+    // Calm-down check
+    const warns=getDepositWarnings()
+    if(warns.length){
+      const msg='⚠️ 冷静提醒\n\n'+warns.map(w=>'• '+w).join('\n')+'\n\n确定要继续入金吗？'
+      if(!confirm(msg))return
+    }
+    entries.value.unshift({id:genId(),date:form.date||dayjs().format('YYYY-MM-DD'),amount:Number(form.amount),rate:form.rate?Number(form.rate):'',exchange:form.exchange.trim(),note:form.note.trim(),type:form.type})
+    snap();save();form.amount='';form.note='';showToast('已添加','success')
+  }
+  function mobileAddEntry(){const before=entries.value.length;addEntry();if(entries.value.length>before)showMobileAdd.value=false}
+  function copyLast(){const e=sortedEntries.value[0];if(!e)return;form.date=e.date;form.amount=e.amount;form.rate=e.rate||'';form.exchange=e.exchange;form.note='';form.type=e.type;showToast('已复制','info')}
+  function removeEntry(id){if(!confirm('确认删除？'))return;entries.value=entries.value.filter(e=>e.id!==id);snap();save();showToast('已删除','success')}
+  function updateField(id,key,val){const e=entries.value.find(x=>x.id===id);if(!e)return;if(key==='amount'||key==='rate')e[key]=val===''?'':Number(val);else e[key]=val;save()}
+  function clearData(){if(!confirm('确认清空所有记录？'))return;snap();entries.value=[];save();showToast('已清空','success')}
+
+  // Period Stats
+  const periodRows=computed(()=>{
+    const map=new Map()
+    entries.value.forEach(e=>{const k=pKey(e.date,period.value);if(!k)return;if(!map.has(k))map.set(k,{key:k,inTotal:0,outTotal:0});const r=map.get(k);if(e.type==='入金')r.inTotal+=e.amount||0;else r.outTotal+=e.amount||0})
+    const rows=[...map.values()].sort((a,b)=>a.key<b.key?-1:1);let cum=0
+    rows.forEach(r=>{r.net=r.outTotal-r.inTotal;cum+=r.net;r.cum=cum});return rows
+  })
+
+  const exchangeRows=computed(()=>{
+    const map=new Map()
+    entries.value.forEach(e=>{const k=e.exchange||'未知';if(!map.has(k))map.set(k,{exchange:k,inTotal:0,outTotal:0});const r=map.get(k);if(e.type==='入金')r.inTotal+=e.amount||0;else r.outTotal+=e.amount||0})
+    return[...map.values()].map(r=>({...r,net:r.outTotal-r.inTotal})).sort((a,b)=>a.exchange<b.exchange?-1:1)
+  })
+
+  const periodCompare=computed(()=>{
+    const ck=todayKey(period.value),pk=prevKey(period.value,ck)
+    const cur=periodRows.value.find(r=>r.key===ck)||{inTotal:0,outTotal:0}
+    const prev=periodRows.value.find(r=>r.key===pk)||{inTotal:0,outTotal:0}
+    const cn=cur.outTotal-cur.inTotal,pn=prev.outTotal-prev.inTotal
+    return{curNet:cn,prevNet:pn,delta:cn-pn}
+  })
+
+  const largeTxList=computed(()=>{
+    const th=rules.largeTx||5000
+    return entries.value.filter(e=>e.amount>=th).sort((a,b)=>b.amount-a.amount).slice(0,6).map(e=>`${e.date} ${e.exchange||''} ${e.type} ${fmt(e.amount)}`)
+  })
+
+  // Behavior Analysis
+  const behaviorAnalysis=computed(()=>{
+    const inEntries=sortedEntries.value.filter(e=>e.type==='入金').reverse() // chronological
+    const allSorted=[...entries.value].sort((a,b)=>a.date<b.date?-1:1)
+    if(!inEntries.length)return null
+
+    // Day of week distribution
+    const weekdays=['周日','周一','周二','周三','周四','周五','周六']
+    const dayDist=Array(7).fill(null).map(()=>({count:0,total:0}))
+    inEntries.forEach(e=>{
+      if(!e.date)return
+      const d=new Date(e.date).getDay()
+      dayDist[d].count++;dayDist[d].total+=e.amount||0
+    })
+
+    // Amount ranges
+    const ranges=[{label:'<500',min:0,max:500},{label:'500-1k',min:500,max:1000},{label:'1k-3k',min:1000,max:3000},{label:'3k-1w',min:3000,max:10000},{label:'>1w',min:10000,max:Infinity}]
+    ranges.forEach(r=>{r.count=inEntries.filter(e=>e.amount>=r.min&&e.amount<r.max).length})
+
+    // Interval analysis
+    const intervals=[]
+    for(let i=1;i<inEntries.length;i++){
+      const d1=new Date(inEntries[i-1].date),d2=new Date(inEntries[i].date)
+      const diff=Math.round((d2-d1)/(864e5))
+      if(diff>=0)intervals.push(diff)
+    }
+    const avgInterval=intervals.length?intervals.reduce((s,v)=>s+v,0)/intervals.length:0
+    const minInterval=intervals.length?Math.min(...intervals):0
+    const denseCount=intervals.filter(d=>d<3).length
+    const intervalStdDev=intervals.length>1?Math.sqrt(intervals.reduce((s,v)=>s+Math.pow(v-avgInterval,2),0)/intervals.length):0
+
+    // Amount stats
+    const amounts=inEntries.map(e=>e.amount)
+    const avgAmount=amounts.reduce((s,v)=>s+v,0)/amounts.length
+    const maxAmount=Math.max(...amounts)
+    const amountStdDev=Math.sqrt(amounts.reduce((s,v)=>s+Math.pow(v-avgAmount,2),0)/amounts.length)
+
+    // Post-loss escalation: after 出金, is next 入金 bigger than average?
+    let escalationCount=0,escalationChecks=0
+    for(let i=1;i<allSorted.length;i++){
+      if(allSorted[i].type==='入金'&&allSorted[i-1].type==='出金'){
+        escalationChecks++
+        if(allSorted[i].amount>avgAmount*1.3)escalationCount++
+      }
+    }
+
+    // Longest consecutive deposits
+    let maxStreak=0,curStreak=0
+    allSorted.forEach(e=>{if(e.type==='入金'){curStreak++;maxStreak=Math.max(maxStreak,curStreak)}else curStreak=0})
+
+    // Weekend ratio
+    const weekendCount=dayDist[0].count+dayDist[6].count
+    const weekendRatio=inEntries.length?weekendCount/inEntries.length:0
+
+    return{dayDist,weekdays,ranges,avgInterval:Math.round(avgInterval*10)/10,minInterval,denseCount,denseRatio:intervals.length?denseCount/intervals.length:0,
+      avgAmount:Math.round(avgAmount),maxAmount,amountStdDev,intervalStdDev,
+      escalationCount,escalationChecks,escalationRate:escalationChecks?escalationCount/escalationChecks:0,
+      maxStreak,weekendRatio,totalIn:inEntries.length}
+  })
+
+  const psychoTags=computed(()=>{
+    const b=behaviorAnalysis.value;if(!b)return[]
+    const tags=[]
+    // Positive
+    if(b.intervalStdDev<5&&b.amountStdDev<b.avgAmount*0.5&&b.totalIn>=5)
+      tags.push({text:'纪律执行',type:'good',tip:'入金间隔和金额都比较稳定，说明你有计划地在操作'})
+    if(b.denseRatio<0.1&&b.totalIn>=5)
+      tags.push({text:'节奏稳健',type:'good',tip:'很少出现密集入金，情绪控制良好'})
+    // Warning
+    if(b.weekendRatio>0.3)
+      tags.push({text:'周末活跃',type:'warn',tip:`周末入金占比 ${Math.round(b.weekendRatio*100)}%，注意周末行情波动较大`})
+    if(b.denseRatio>0.25)
+      tags.push({text:'追单倾向',type:'danger',tip:`${b.denseCount} 次间隔不到 3 天的密集入金，占比 ${Math.round(b.denseRatio*100)}%`})
+    if(b.escalationRate>0.4&&b.escalationChecks>=2)
+      tags.push({text:'加码回本',type:'danger',tip:`出金后入金金额偏高（${b.escalationCount}/${b.escalationChecks} 次超过均值 30%），可能存在回本心态`})
+    if(b.maxAmount>b.avgAmount*2.5)
+      tags.push({text:'大额冲动',type:'warn',tip:`最大单笔 ${fmt(b.maxAmount)} 是平均值 ${fmt(b.avgAmount)} 的 ${(b.maxAmount/b.avgAmount).toFixed(1)} 倍`})
+    if(b.maxStreak>=6)
+      tags.push({text:'连续入金',type:'warn',tip:`最长连续 ${b.maxStreak} 笔入金无出金，注意资金回收节奏`})
+    if(!tags.length)
+      tags.push({text:'数据较少',type:'neutral',tip:'继续记录，积累更多数据后分析会更准确'})
+    return tags
+  })
+
+  const behaviorAdvice=computed(()=>{
+    const tags=psychoTags.value.map(t=>t.text)
+    const adv=[]
+    if(tags.includes('追单倾向'))adv.push('建议设定最小入金间隔（如 5 天），避免情绪驱动的密集操作。')
+    if(tags.includes('加码回本'))adv.push('亏损后不要急于加大入金，先冷静复盘再决定下一步。')
+    if(tags.includes('大额冲动'))adv.push('考虑设定单笔入金上限，大额操作前强制等待 24 小时。')
+    if(tags.includes('周末活跃'))adv.push('周末行情流动性低、波动大，建议减少周末入金频率。')
+    if(tags.includes('连续入金'))adv.push('连续入金说明资金在持续流出，建议定期出金锁定利润。')
+    if(tags.includes('纪律执行'))adv.push('当前入金节奏稳定，继续保持纪律性操作。')
+    if(!adv.length)adv.push('继续保持记录习惯，数据越多分析越准。')
+    return adv
+  })
+
+  // Insights
+  const insightSummary=computed(()=>{
+    const ck=todayKey(period.value)
+    const cur=periodRows.value.find(r=>r.key===ck)||{inTotal:0,outTotal:0}
+    const net=cur.outTotal-cur.inTotal
+    const pn={month:'本月',week:'本周',year:'本年'}[period.value]
+    return`${pn}（${ck}）入金 ${fmt(cur.inTotal)}，出金 ${fmt(cur.outTotal)}，净盈亏 ${fmt(net)}。`
+  })
+
+  const insightAdvice=computed(()=>{
+    const ck=todayKey(period.value)
+    const cur=periodRows.value.find(r=>r.key===ck)||{inTotal:0,outTotal:0}
+    const net=cur.outTotal-cur.inTotal
+    const pRoi=cur.inTotal>0?cur.outTotal/cur.inTotal:0
+    const pn={month:'本月',week:'本周',year:'本年'}[period.value]
+    const sorted=[...periodRows.value].sort((a,b)=>a.key<b.key?-1:1)
+    let streak=0;for(let i=sorted.length-1;i>=0;i--){if(sorted[i].net<0)streak++;else break}
+    const adv=[]
+    if(cur.inTotal===0&&cur.outTotal===0){adv.push('当前周期暂无记录，先保持观望。')}else{
+      if(net<=-rules.lossCritical)adv.push(`${pn}净亏损偏大，建议暂停入金，先复盘。`)
+      else if(net<0&&Math.abs(net)>=rules.lossWarn)adv.push(`${pn}处于亏损，建议下调单笔入金额度。`)
+      if(cur.inTotal>0&&pRoi<rules.roiWarn)adv.push(`${pn}回收比例偏低，优先风险收缩。`)
+      if(cur.inTotal>=rules.largeTx&&cur.outTotal>0&&cur.inTotal>cur.outTotal*rules.inflowRatio)adv.push(`${pn}入金快于出金，注意控制节奏。`)
+      if(streak>=rules.lossStreak)adv.push(`已连续 ${streak} 个周期亏损，建议暂停追单。`)
+      if(net>0&&pRoi>=1.1)adv.push(`${pn}表现为正，可分批锁定利润。`)
+    }
+    if(!adv.length)adv.push('资金节奏正常，继续执行纪律。')
+    return adv
+  })
+
+  // Review
+  const defaultCL=['复盘本周期亏损前三笔，记录触发原因。','是否有冲动入金或计划外加仓？','最大单笔入金/出金是否合理？','下周期先设定入金上限再交易。','是否及时止盈止损？','有无可复制的成功操作？']
+  const reviewChecklist=ref([])
+  function loadReview(){
+    const pk=`${period.value}:${todayKey(period.value)}`
+    try{const r=localStorage.getItem(REVIEW_K);const d=r?JSON.parse(r):{};const v=d[pk];reviewNote.value=v?.note||'';reviewSavedAt.value=v?.savedAt||''}catch(e){}
+    try{const r=localStorage.getItem('crypto_cashflow_checklist');const d=r?JSON.parse(r):{};const v=d[pk];reviewChecklist.value=v||defaultCL.map(t=>({text:t,checked:false}))}catch(e){reviewChecklist.value=defaultCL.map(t=>({text:t,checked:false}))}
+  }
+  function saveChecklist(){const pk=`${period.value}:${todayKey(period.value)}`;try{const r=localStorage.getItem('crypto_cashflow_checklist');const d=r?JSON.parse(r):{};d[pk]=clone(reviewChecklist.value);localStorage.setItem('crypto_cashflow_checklist',JSON.stringify(d))}catch(e){}}
+  function saveReviewNote(){const pk=`${period.value}:${todayKey(period.value)}`;try{const r=localStorage.getItem(REVIEW_K);const d=r?JSON.parse(r):{};d[pk]={note:reviewNote.value,savedAt:new Date().toLocaleString('zh-CN')};localStorage.setItem(REVIEW_K,JSON.stringify(d));reviewSavedAt.value=d[pk].savedAt;showToast('笔记已保存','success')}catch(e){}}
+  function saveRules(){localStorage.setItem(RULES_K,JSON.stringify({lossWarn:rules.lossWarn,lossCritical:rules.lossCritical,roiWarn:rules.roiWarn,inflowRatio:rules.inflowRatio,largeTx:rules.largeTx,lossStreak:rules.lossStreak}));showToast('规则已保存','success')}
+  watch(period,loadReview)
+
+  // Snapshots
+  function createSnap(){snap();showToast('快照已创建','success')}
+  function restoreSnap(i){const s=snapshots.value[i];if(!s||!confirm('确认恢复？当前数据会被覆盖。'))return;entries.value=s.entries||[];save();showToast('已恢复','success')}
+  function clearSnaps(){if(!confirm('清空所有快照？'))return;snapshots.value=[];localStorage.removeItem(SNAP_K);showToast('已清空','success')}
+
+  // Sync
+  function buildAuth(){return'Basic '+btoa(`${syncCfg.user}:${syncCfg.pass}`)}
+  function saveSyncConfig(){const cfg={url:(syncCfg.url||'').replace(/\/$/,''),user:syncCfg.user,pass:syncCfg.pass};localStorage.setItem(SYNC_K,JSON.stringify(cfg));syncStatus.value=cfg.url?'已配置':'未配置';showToast('同步配置已保存','success')}
+  async function syncPush(){
+    if(!syncCfg.url||!syncCfg.user||!syncCfg.pass){syncStatus.value='未配置';return}
+    syncStatus.value='上传中…'
+    try{const r=await fetch(`${syncCfg.url}/sync`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:buildAuth()},body:JSON.stringify({entries:entries.value})});if(!r.ok)throw new Error();const d=await r.json();syncStatus.value=`已上传 ${entries.value.length} 条`;showToast('上传成功','success')}catch(e){syncStatus.value='上传失败';showToast('上传失败','error')}
+  }
+  async function syncPull(){
+    if(!syncCfg.url||!syncCfg.user||!syncCfg.pass){syncStatus.value='未配置';return}
+    syncStatus.value='拉取中…'
+    try{const r=await fetch(`${syncCfg.url}/sync`,{headers:{Authorization:buildAuth()}});if(!r.ok)throw new Error();const d=await r.json();const list=Array.isArray(d.entries)?d.entries:[];entries.value=list.map(normRow).filter(Boolean).sort((a,b)=>a.date<b.date?1:-1);save();syncStatus.value=`已拉取 ${list.length} 条`;showToast('拉取成功','success')}catch(e){syncStatus.value='拉取失败';showToast('拉取失败','error')}
+  }
+
+  // Import/Export
+  function exportExcel(){
+    if(!entries.value.length){showToast('无数据','info');return}
+    const inR=[],outR=[],flowR=[]
+    sortedEntries.value.forEach(e=>{
+      const base={'日期':e.date,'汇率':e.rate,'金额（元）':e.amount,'交易所':e.exchange,'类型':e.type}
+      flowR.push({...base,'备注':e.note,'方向金额':e.type==='出金'?e.amount:-e.amount,'月份(yyyy-MM)':e.date?e.date.slice(0,7):''})
+      if(e.type==='入金')inR.push({...base,'备注':e.note});else outR.push({...base,'收款渠道':e.note})
+    })
+    let cum=0;const mRows=[];const mm=new Map()
+    entries.value.forEach(e=>{const k=e.date?e.date.slice(0,7):'';if(!k)return;if(!mm.has(k))mm.set(k,{m:k,i:0,o:0});const r=mm.get(k);e.type==='入金'?r.i+=e.amount||0:r.o+=e.amount||0})
+    ;[...mm.values()].sort((a,b)=>a.m<b.m?-1:1).forEach(r=>{const n=r.o-r.i;cum+=n;mRows.push({'月份':r.m,'入金合计':r.i,'出金合计':r.o,'月度盈亏':n,'累计盈亏':cum})})
+    const statR=[{'统计项':'总入金','金额（元）':totalIn.value},{'统计项':'总出金','金额（元）':totalOut.value},{'统计项':'净盈亏','金额（元）':netPL.value},{'统计项':'回本比例','金额（元）':roi.value}]
+    const wb=XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(inR),'入金记录')
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(outR),'出金记录')
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(flowR),'流水记录')
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(statR),'出入金盈亏统计')
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(mRows),'月度统计')
+    XLSX.writeFile(wb,'出入金统计导出.xlsx');showToast('已导出','success')
+  }
+  function exportJSON(){
+    const b=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),entries:entries.value},null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='出入金备份.json';a.click();URL.revokeObjectURL(u);showToast('已导出','success')
+  }
+  function importExcel(ev){
+    const f=ev.target.files[0];if(!f)return;snap();const rd=new FileReader()
+    rd.onload=e=>{try{
+      const wb=XLSX.read(e.target.result,{type:'array'});const list=[]
+      const tryAdd=(row,tf)=>{const en=normRow({...row,type:row['类型']||tf});if(en)list.push(en)}
+      if(wb.SheetNames.includes('流水记录')){XLSX.utils.sheet_to_json(wb.Sheets['流水记录'],{defval:''}).forEach(r=>tryAdd(r,r['类型']))}
+      else{if(wb.SheetNames.includes('入金记录'))XLSX.utils.sheet_to_json(wb.Sheets['入金记录'],{defval:''}).forEach(r=>tryAdd(r,'入金'));if(wb.SheetNames.includes('出金记录'))XLSX.utils.sheet_to_json(wb.Sheets['出金记录'],{defval:''}).forEach(r=>tryAdd(r,'出金'))}
+      if(!list.length){const ws=wb.Sheets[wb.SheetNames[0]];XLSX.utils.sheet_to_json(ws,{defval:''}).forEach(r=>tryAdd(r,r['类型']||'入金'))}
+      if(list.length){entries.value=list.sort((a,b)=>a.date<b.date?1:-1);save();showToast(`导入 ${list.length} 条`,'success')}else showToast('未识别到有效数据','error')
+    }catch(err){showToast('导入失败','error')}};rd.readAsArrayBuffer(f);ev.target.value=''
+  }
+  function importJSON(ev){
+    const f=ev.target.files[0];if(!f)return;snap();const rd=new FileReader()
+    rd.onload=e=>{try{const d=JSON.parse(e.target.result);const list=Array.isArray(d)?d:(d.entries||[]);entries.value=list.map(normRow).filter(Boolean).sort((a,b)=>a.date<b.date?1:-1);save();showToast(`导入 ${entries.value.length} 条`,'success')}catch(err){showToast('JSON格式错误','error')}};rd.readAsText(f);ev.target.value=''
+  }
+
+  // Chart
+  const trendChart=ref(null)
+  const weekdayChart=ref(null)
+  let chartInstance=null
+  let weekdayChartInstance=null
+  function renderChart(){
+    if(!trendChart.value||typeof Chart==='undefined')return
+    const rows=periodRows.value
+    if(chartInstance){chartInstance.destroy();chartInstance=null}
+    const isLight=theme.value==='light'
+    const tickColor=isLight?'#9ca3b0':'#4a5568'
+    const gridColor=isLight?'rgba(0,0,0,.06)':'rgba(255,255,255,.04)'
+    const borderColor=isLight?'rgba(0,0,0,.08)':'rgba(255,255,255,.06)'
+    const labels=rows.map(r=>r.key)
+    const netData=rows.map(r=>r.net)
+    const cumData=rows.map(r=>r.cum)
+    const inData=rows.map(r=>r.inTotal)
+    const outData=rows.map(r=>r.outTotal)
+    chartInstance=new Chart(trendChart.value,{
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          {label:'入金',data:inData,borderColor:'rgba(248,113,113,.7)',backgroundColor:'rgba(248,113,113,.08)',fill:true,tension:.3,pointRadius:2,borderWidth:2},
+          {label:'出金',data:outData,borderColor:'rgba(52,211,153,.7)',backgroundColor:'rgba(52,211,153,.08)',fill:true,tension:.3,pointRadius:2,borderWidth:2},
+          {label:'净盈亏',data:netData,borderColor:'rgba(43,192,228,.9)',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2.5,borderDash:[5,3]},
+          {label:'累计盈亏',data:cumData,borderColor:'rgba(240,168,32,.8)',backgroundColor:'rgba(240,168,32,.06)',fill:true,tension:.3,pointRadius:2,borderWidth:2}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{position:'top',labels:{color:tickColor,font:{size:11},boxWidth:12,padding:16,usePointStyle:true}},
+          tooltip:{
+            backgroundColor:isLight?'rgba(255,255,255,.95)':'rgba(20,24,32,.95)',
+            borderColor:isLight?'rgba(0,0,0,.1)':'rgba(255,255,255,.08)',borderWidth:1,
+            titleColor:isLight?'#1a1d23':'#e8eaed',bodyColor:isLight?'#5f6878':'#8b95a5',padding:12,
+            callbacks:{label:ctx=>`${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('zh-CN',{maximumFractionDigits:0})}`}
+          }
+        },
+        scales:{
+          x:{ticks:{color:tickColor,font:{size:10},maxRotation:45},grid:{color:gridColor},border:{color:borderColor}},
+          y:{ticks:{color:tickColor,font:{size:10},callback:v=>v>=1000||v<=-1000?(v/1000)+'k':v},grid:{color:gridColor},border:{color:borderColor}}
+        }
+      }
+    })
+  }
+
+  function renderWeekdayChart(){
+    if(!weekdayChart.value||typeof Chart==='undefined'||!behaviorAnalysis.value)return
+    if(weekdayChartInstance){weekdayChartInstance.destroy();weekdayChartInstance=null}
+    const b=behaviorAnalysis.value
+    const isLight=theme.value==='light'
+    const tickColor=isLight?'#9ca3b0':'#4a5568'
+    const gridColor=isLight?'rgba(0,0,0,.06)':'rgba(255,255,255,.04)'
+    weekdayChartInstance=new Chart(weekdayChart.value,{
+      type:'bar',
+      data:{
+        labels:['周一','周二','周三','周四','周五','周六','周日'],
+        datasets:[
+          {label:'笔数',data:[b.dayDist[1].count,b.dayDist[2].count,b.dayDist[3].count,b.dayDist[4].count,b.dayDist[5].count,b.dayDist[6].count,b.dayDist[0].count],
+           backgroundColor:['rgba(43,192,228,.5)','rgba(43,192,228,.5)','rgba(43,192,228,.5)','rgba(43,192,228,.5)','rgba(43,192,228,.5)','rgba(248,113,113,.5)','rgba(248,113,113,.5)'],
+           borderColor:['rgba(43,192,228,.8)','rgba(43,192,228,.8)','rgba(43,192,228,.8)','rgba(43,192,228,.8)','rgba(43,192,228,.8)','rgba(248,113,113,.8)','rgba(248,113,113,.8)'],
+           borderWidth:1,borderRadius:4,yAxisID:'y'},
+          {label:'金额',data:[b.dayDist[1].total,b.dayDist[2].total,b.dayDist[3].total,b.dayDist[4].total,b.dayDist[5].total,b.dayDist[6].total,b.dayDist[0].total],
+           type:'line',borderColor:'rgba(240,168,32,.8)',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2,yAxisID:'y1'}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{position:'top',labels:{color:tickColor,font:{size:11},boxWidth:12,padding:12,usePointStyle:true}},
+          tooltip:{backgroundColor:isLight?'rgba(255,255,255,.95)':'rgba(20,24,32,.95)',titleColor:isLight?'#1a1d23':'#e8eaed',bodyColor:isLight?'#5f6878':'#8b95a5',borderColor:isLight?'rgba(0,0,0,.1)':'rgba(255,255,255,.08)',borderWidth:1,padding:10}
+        },
+        scales:{
+          x:{ticks:{color:tickColor,font:{size:11}},grid:{display:false}},
+          y:{position:'left',ticks:{color:tickColor,font:{size:10},stepSize:1},grid:{color:gridColor},title:{display:true,text:'笔数',color:tickColor,font:{size:10}}},
+          y1:{position:'right',ticks:{color:tickColor,font:{size:10},callback:v=>v>=1000?(v/1000)+'k':v},grid:{display:false},title:{display:true,text:'金额',color:tickColor,font:{size:10}}}
+        }
+      }
+    })
+  }
+
+  onMounted(()=>{
+    load()
+    // Default expand: current month if has data, otherwise latest month with data
+    const curMonth=dayjs().format('YYYY-MM')
+    const months=[...new Set(entries.value.map(e=>e.date?e.date.slice(0,7):'').filter(Boolean))].sort().reverse()
+    expandedMonths.value=new Set([months.includes(curMonth)?curMonth:(months[0]||curMonth)])
+    // Apply root class since #app mount element isn't compiled by Vue 3
+    // Only apply mobile tab class when viewport is mobile (<680px)
+    const appEl=document.getElementById('app')
+    function updateAppClass(){
+      const isMobile=window.innerWidth<=680
+      const tab=mobileTab.value
+      appEl.className='app'+(isMobile&&tab?' mob-tab-'+tab:'')
+    }
+    watch(mobileTab,updateAppClass,{immediate:true})
+    window.addEventListener('resize',updateAppClass)
+    // Render charts after data loads
+    Vue.nextTick(()=>{renderChart();renderWeekdayChart()})
+    watch(periodRows,()=>Vue.nextTick(renderChart))
+    watch(behaviorAnalysis,()=>Vue.nextTick(renderWeekdayChart))
+  })
+
+  return{entries,sortedEntries,snapshots,period,mobileTab,showMobileAdd,showFilters,editingEntry,showSync,theme,toggleTheme,trendChart,weekdayChart,toast,form,filters,rules,syncCfg,syncStatus,reviewNote,reviewSavedAt,reviewChecklist,
+    totalIn,totalOut,netPL,roi,allExchanges,allMonths,matchedIds,matchCount,activeFilterCount,periodRows,exchangeRows,periodCompare,largeTxList,insightSummary,insightAdvice,
+    behaviorAnalysis,psychoTags,behaviorAdvice,
+    monthlyBudget,saveBudget,curMonthIn,budgetRatio,
+    fmt,rowClass,toggleEx,clearFilters,scrollToFirstMatch,openEditModal,saveEditEntry,
+    groupedEntries,expandedMonths,toggleMonth,isMonthOpen,expandAllMonths,collapseAllMonths,
+    addEntry,mobileAddEntry,copyLast,removeEntry,updateField,clearData,
+    createSnap,restoreSnap,clearSnaps,
+    saveSyncConfig,syncPush,syncPull,saveRules,saveReviewNote,saveChecklist,loadReview,
+    exportExcel,exportJSON,importExcel,importJSON,showToast,dayjs}
+}
+}).mount('#app')
+
+// Register Service Worker for PWA
+// Trading quotes
+const QUOTES=[
+  // 利弗莫尔 (Jesse Livermore)
+  '真正赚大钱的，不是靠思考，而是靠坐着等。—— 利弗莫尔',
+  '华尔街不会变，因为人性不会变。—— 利弗莫尔',
+  '市场永远不会错，错的只有人的判断。—— 利弗莫尔',
+  '不要和行情争论，跟着趋势走。—— 利弗莫尔',
+  '投机者最大的敌人就是自己：希望和恐惧。—— 利弗莫尔',
+  '能做对又能坐得住的人太少了。—— 利弗莫尔',
+  '不要试图抄底或摸顶，让市场告诉你方向。—— 利弗莫尔',
+  '永远不要摊平亏损的仓位。—— 利弗莫尔',
+  '预测市场是赌博，等待信号才是投机。—— 利弗莫尔',
+  '大钱不是在波动中赚的，而是在等待中赚的。—— 利弗莫尔',
+  // 巴菲特 (Warren Buffett)
+  '别人贪婪时恐惧，别人恐惧时贪婪。—— 巴菲特',
+  '第一条规则：永远不要亏钱。第二条规则：永远不要忘记第一条。—— 巴菲特',
+  '价格是你付出的，价值才是你得到的。—— 巴菲特',
+  '只有退潮时，你才知道谁在裸泳。—— 巴菲特',
+  '如果你不愿意持有十年，就不要持有十分钟。—— 巴菲特',
+  '风险来自于你不知道自己在做什么。—— 巴菲特',
+  // 索罗斯 (George Soros)
+  '重要的不是你判断对错，而是对的时候赚多少，错的时候亏多少。—— 索罗斯',
+  '我之所以有钱，是因为我知道自己什么时候错了。—— 索罗斯',
+  '承认错误是一种力量的体现，而非弱点。—— 索罗斯',
+  '市场总是处于不确定的状态，赚钱靠的是押注意外。—— 索罗斯',
+  // 保罗·都铎·琼斯 (Paul Tudor Jones)
+  '交易最重要的规则是打好防守，而不是进攻。—— 保罗·都铎·琼斯',
+  '输家才会加仓摊平亏损。—— 保罗·都铎·琼斯',
+  '不要做英雄，不要有自负的心态，永远质疑自己。—— 保罗·都铎·琼斯',
+  '我每天都假设自己持有的每个头寸都是错的。—— 保罗·都铎·琼斯',
+  // 达里奥 (Ray Dalio)
+  '痛苦+反思=进步。—— 达里奥',
+  '最大的风险是你认为没有风险的时候。—— 达里奥',
+  '你能犯的最大错误是不去犯错误。—— 达里奥',
+  // 马克·道格拉斯 (Mark Douglas)
+  '交易的本质是概率游戏，不是对错游戏。—— 马克·道格拉斯',
+  '优秀的交易员不是不犯错，而是犯错后能快速止损。—— 马克·道格拉斯',
+  '纪律不是限制自由，而是通往自由的路径。—— 马克·道格拉斯',
+  '你不需要知道下一步会发生什么就可以赚钱。—— 马克·道格拉斯',
+  // 艾德·赛科塔 (Ed Seykota)
+  '每个人最终都会从市场中得到他想要的东西。—— 艾德·赛科塔',
+  '赢也好，输也好，每个人都能从市场中如愿以偿。—— 艾德·赛科塔',
+  '趋势是你的朋友，直到它结束。—— 艾德·赛科塔',
+  '管好风险，剩下的利润会自己到来。—— 艾德·赛科塔',
+  // 彼得·林奇 (Peter Lynch)
+  '远离那些你不了解的投资。—— 彼得·林奇',
+  '花在选股上的时间越多，亏的越多。—— 彼得·林奇',
+  // 查理·芒格 (Charlie Munger)
+  '所有聪明的投资都是价值投资。—— 查理·芒格',
+  '反过来想，总是反过来想。—— 查理·芒格',
+  '一个人需要的不是大量的行动，而是大量的耐心。—— 查理·芒格',
+  // 纳西姆·塔勒布 (Nassim Taleb)
+  '不要试图预测黑天鹅，而是让自己能承受黑天鹅。—— 塔勒布',
+  '最脆弱的系统是那些看起来最稳定的。—— 塔勒布',
+  // 交易通用智慧
+  '市场永远不缺机会，缺的是等待的耐心。',
+  '每一次冲动入金，都是在给市场交学费。',
+  '盈亏同源，控制回撤比追求收益更重要。',
+  '不要用生活费去赌一个不确定的未来。',
+  '你打败不了市场，但可以管住自己的手。',
+  '最好的交易是不交易。',
+  '亏损不可怕，可怕的是亏损后的报复性操作。',
+  'FOMO 是亏损的起点，纪律是盈利的基石。',
+  '记录是为了复盘，复盘是为了进步。',
+  '活着比赚钱重要，保住本金永远是第一位。',
+  '当你想追涨的时候，想想上次追涨的结果。',
+  '慢慢变富是大多数人最快的路。',
+  '计划你的交易，交易你的计划。',
+  '截断亏损，让利润奔跑。',
+  '没有止损的交易就是在裸奔。',
+  '市场会奖励耐心，惩罚贪婪。',
+  '你的交易日志就是你最好的老师。',
+  '赢了想加仓，输了想回本——这就是亏钱的根源。',
+  '三思而后行，这在交易里值一百万。',
+  '控制你能控制的：仓位、止损、情绪。',
+  '好的交易员都是好的风险管理者。',
+  '不要让一笔好交易变成一笔坏交易。',
+  '市场不欠你任何东西。',
+  '保护本金是第一要务，盈利是第二要务。',
+  '在不确定中寻找确定的规则，这就是交易系统。',
+  '频繁交易是账户最大的敌人。',
+  '学会空仓，空仓也是一种操作。',
+  '别把运气当实力，也别把亏损当倒霉。',
+  '情绪化交易的尽头是爆仓。',
+  '仓位管理是活下去的基础。',
+  '每一笔亏损都在教你一些东西，前提是你愿意学。',
+  '不要因为无聊而交易。',
+  '最贵的一课是不听自己定的规则。',
+  '牛市让人自负，熊市让人清醒。',
+  '你的对手不是市场，而是昨天的自己。',
+  '入场前问自己：如果亏了，能接受吗？',
+  '真正的高手，大部分时间都在等待。',
+  '复利的敌人是回撤，回撤的敌人是纪律。',
+  '不怕做错，就怕死扛。',
+  '每次梭哈前想一想：你的生活费够吗？',
+  '交易是马拉松，不是百米冲刺。',
+  '市场奖励的是生存者，不是冒险者。',
+  '永远带着敬畏心进入市场。'
+]
+const q=document.getElementById('heroQuote')
+if(q)q.textContent='「'+QUOTES[Math.floor(Math.random()*QUOTES.length)]+'」'
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{})
+  })
+}
+</script>
+</body>
+</html>
