@@ -2,3 +2,4 @@
 .claude/
 *.log
 node_modules/
+my_data_backup.json
