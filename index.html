@@ -590,14 +590,12 @@ tr.row-unmatched td{opacity:.35}
           <select class="form-input" v-model="form.currency" style="width:110px;flex-shrink:0"><option value="CNY">CNY 元</option><option value="USD">USD 美元</option><option value="HKD">HKD 港币</option><option value="USDT">USDT</option></select>
           <input class="form-input" type="number" step="0.01" v-model.number="form.amount" placeholder="1000" inputmode="decimal" style="flex:1;min-width:0">
         </div>
-      </div>
-      <div class="form-group" v-if="form.currency!=='CNY'">
-        <label>汇率（折CNY）</label>
-        <div class="rate-input-wrap">
-          <input class="form-input" type="number" step="0.0001" v-model="form.rate" :placeholder="form.currency==='HKD'?'0.92':'7.25'" inputmode="decimal">
-          <button class="rate-fetch-btn" @click="fetchRate(form.currency,'form')" :disabled="rateLoading">{{ rateLoading?'…':'获取' }}</button>
+        <div v-if="form.currency!=='CNY'" style="display:flex;gap:6px;margin-top:6px;align-items:center">
+          <span style="font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0">汇率</span>
+          <input class="form-input" type="number" step="0.0001" v-model="form.rate" :placeholder="form.currency==='HKD'?'0.92':'7.25'" inputmode="decimal" style="flex:1;min-width:0">
+          <button class="rate-fetch-btn" @click="fetchRate(form.currency,'form')" :disabled="rateLoading">{{ rateLoading?'获取中…':'获取汇率' }}</button>
         </div>
-        <p class="rate-hint" v-if="form.rate">≈ 1 {{ form.currency }} = {{ form.rate }} CNY，本笔 ≈ {{ fmt(form.amount*Number(form.rate)) }} 元</p>
+        <p class="rate-hint" v-if="form.currency!=='CNY'&&form.rate&&form.amount">本笔 ≈ {{ fmt(form.amount*Number(form.rate)) }} 元（1 {{ form.currency }} = {{ form.rate }} CNY）</p>
       </div>
       <div class="form-group"><label>{{ form.type==='入金'?'投入理由':'出金备注' }}</label><input class="form-input" v-model="form.note" :placeholder="form.type==='入金'?'为什么要入这笔？如：定投/补仓/看好行情':'收款渠道/备注'"></div>
       <div class="form-group"><label>类型</label><select class="form-input" v-model="form.type"><option value="入金">入金</option><option value="出金">出金</option></select></div>
@@ -1000,14 +998,12 @@ tr.row-unmatched td{opacity:.35}
             <select class="form-input" v-model="form.currency" style="width:110px;flex-shrink:0"><option value="CNY">CNY 元</option><option value="USD">USD 美元</option><option value="HKD">HKD 港币</option><option value="USDT">USDT</option></select>
             <input class="form-input" type="number" step="0.01" v-model.number="form.amount" inputmode="decimal" style="flex:1;min-width:0">
           </div>
-        </div>
-        <div class="form-group" v-if="form.currency!=='CNY'">
-          <label>汇率（折CNY）</label>
-          <div class="rate-input-wrap">
-            <input class="form-input" type="number" step="0.0001" v-model="form.rate" inputmode="decimal" :placeholder="form.currency==='HKD'?'0.92':'7.25'">
-            <button class="rate-fetch-btn" @click="fetchRate(form.currency,'form')" :disabled="rateLoading">{{ rateLoading?'…':'获取' }}</button>
+          <div v-if="form.currency!=='CNY'" style="display:flex;gap:6px;margin-top:6px;align-items:center">
+            <span style="font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0">汇率</span>
+            <input class="form-input" type="number" step="0.0001" v-model="form.rate" :placeholder="form.currency==='HKD'?'0.92':'7.25'" inputmode="decimal" style="flex:1;min-width:0">
+            <button class="rate-fetch-btn" @click="fetchRate(form.currency,'form')" :disabled="rateLoading">{{ rateLoading?'获取中…':'获取汇率' }}</button>
           </div>
-          <p class="rate-hint" v-if="form.rate">≈ 1 {{ form.currency }} = {{ form.rate }} CNY，本笔 ≈ {{ fmt(form.amount*Number(form.rate)) }} 元</p>
+          <p class="rate-hint" v-if="form.currency!=='CNY'&&form.rate&&form.amount">本笔 ≈ {{ fmt(form.amount*Number(form.rate)) }} 元（1 {{ form.currency }} = {{ form.rate }} CNY）</p>
         </div>
         <div class="form-group"><label>{{ form.type==='入金'?'投入理由':'出金备注' }}</label><input class="form-input" v-model="form.note" :placeholder="form.type==='入金'?'为什么要投入这笔？':'收款渠道/备注'"></div>
       </div>
@@ -1028,15 +1024,18 @@ tr.row-unmatched td{opacity:.35}
         <div class="form-group"><label>日期</label><input class="form-input" type="date" v-model="editingEntry.date"></div>
         <div class="form-group"><label>资产类型</label><select class="form-input" v-model="editingEntry.assetType"><option value="">未分类</option><option value="大A">大A</option><option value="美股">美股</option><option value="港股">港股</option><option value="加密货币">加密货币</option><option value="基金">基金</option><option value="黄金">黄金</option><option value="期货">期货</option><option value="其他">其他</option></select></div>
         <div class="form-group"><label>账户/平台</label><input class="form-input" v-model="editingEntry.exchange" list="dl-ex3"><datalist id="dl-ex3"><option v-for="ex in editPlatformSuggestions" :key="ex" :value="ex"></option></datalist></div>
-        <div class="form-group"><label>货币</label><select class="form-input" v-model="editingEntry.currency"><option value="CNY">CNY 人民币</option><option value="USD">USD 美元</option><option value="HKD">HKD 港币</option><option value="USDT">USDT</option></select></div>
-        <div class="form-group"><label>金额{{ (editingEntry.currency||'CNY')!=='CNY'?'（'+editingEntry.currency+'）':'（元）' }}</label><input class="form-input" type="number" step="0.01" v-model.number="editingEntry.amount" inputmode="decimal"></div>
-        <div class="form-group" v-if="editingEntry.currency&&editingEntry.currency!=='CNY'">
-          <label>汇率（折CNY）</label>
-          <div class="rate-input-wrap">
-            <input class="form-input" type="number" step="0.0001" v-model="editingEntry.rate" inputmode="decimal">
-            <button class="rate-fetch-btn" @click="fetchRate(editingEntry.currency,'edit')" :disabled="rateLoading">{{ rateLoading?'…':'获取' }}</button>
+        <div class="form-group">
+          <label>金额</label>
+          <div style="display:flex;gap:6px">
+            <select class="form-input" v-model="editingEntry.currency" style="width:110px;flex-shrink:0"><option value="CNY">CNY 元</option><option value="USD">USD 美元</option><option value="HKD">HKD 港币</option><option value="USDT">USDT</option></select>
+            <input class="form-input" type="number" step="0.01" v-model.number="editingEntry.amount" inputmode="decimal" style="flex:1;min-width:0">
           </div>
-          <p class="rate-hint" v-if="editingEntry.rate">≈ 1 {{ editingEntry.currency }} = {{ editingEntry.rate }} CNY</p>
+          <div v-if="editingEntry.currency&&editingEntry.currency!=='CNY'" style="display:flex;gap:6px;margin-top:6px;align-items:center">
+            <span style="font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0">汇率</span>
+            <input class="form-input" type="number" step="0.0001" v-model="editingEntry.rate" inputmode="decimal" style="flex:1;min-width:0">
+            <button class="rate-fetch-btn" @click="fetchRate(editingEntry.currency,'edit')" :disabled="rateLoading">{{ rateLoading?'获取中…':'获取汇率' }}</button>
+          </div>
+          <p class="rate-hint" v-if="editingEntry.currency&&editingEntry.currency!=='CNY'&&editingEntry.rate&&editingEntry.amount">本笔 ≈ {{ fmt(amountCNY(editingEntry)) }} 元（1 {{ editingEntry.currency }} = {{ editingEntry.rate }} CNY）</p>
         </div>
         <div class="form-group"><label>{{ editingEntry.type==='入金'?'投入理由':'出金备注' }}</label><input class="form-input" v-model="editingEntry.note" :placeholder="editingEntry.type==='入金'?'为什么要投入这笔？':'收款渠道/备注'"></div>
       </div>
