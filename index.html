@@ -509,6 +509,9 @@ tr.row-unmatched td{opacity:.35}
   .hero-actions .btn{flex:1 1 45%}
 }
 
+/* ===== ASSET CARD ===== */
+.asset-card{min-width:120px}
+
 /* ===== UTILS ===== */
 .text-green{color:var(--green)}.text-red{color:var(--red)}.text-blue{color:var(--blue)}.text-muted{color:var(--muted)}
 .mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}
@@ -728,6 +731,34 @@ tr.row-unmatched td{opacity:.35}
             </div>
           </div>
         </template>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ASSET ALLOCATION OVERVIEW ===== -->
+  <section class="panel section-stats section-not-records section-not-data" v-if="assetTypeRows.length">
+    <div class="panel-header"><h2>资产配置总览</h2><p class="hint">各类资产的投入分布与盈亏情况（折合 CNY）</p></div>
+    <div class="stats-layout">
+      <div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button :class="['btn btn-sm',pieMode==='in'?'btn-primary':'btn-ghost']" @click="pieMode='in'">投入分布</button>
+          <button :class="['btn btn-sm',pieMode==='net'?'btn-primary':'btn-ghost']" @click="pieMode='net'">净值分布</button>
+        </div>
+        <div class="chart-wrap" style="max-height:280px"><canvas ref="pieChart"></canvas></div>
+      </div>
+      <div class="compare-grid" style="align-content:start">
+        <div v-for="row in assetTypeRows" :key="row.assetType" class="compare-card asset-card">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            <span :style="{width:'8px',height:'8px',borderRadius:'50%',background:assetColor(row.assetType),flexShrink:0,display:'inline-block'}"></span>
+            <p style="font-weight:700;font-size:13px;margin:0">{{ row.assetType||'未分类' }}</p>
+          </div>
+          <div style="font-size:11px;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:3px 6px">
+            <span>投入</span><span style="text-align:right;color:var(--red);font-variant-numeric:tabular-nums">{{ fmt(row.inTotal) }}</span>
+            <span>取出</span><span style="text-align:right;color:var(--green);font-variant-numeric:tabular-nums">{{ fmt(row.outTotal) }}</span>
+            <span>盈亏</span><span :style="{textAlign:'right',fontVariantNumeric:'tabular-nums',color:row.net>=0?'var(--blue)':'var(--red)'}">{{ (row.net>=0?'+':'')+fmt(row.net) }}</span>
+            <span>回本率</span><span :style="{textAlign:'right',fontVariantNumeric:'tabular-nums',color:row.inTotal&&row.outTotal/row.inTotal>=1?'var(--green)':'var(--red)'}">{{ row.inTotal?((row.outTotal/row.inTotal)*100).toFixed(0)+'%':'-' }}</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1078,7 +1109,7 @@ setup(){
     theme.value=theme.value==='dark'?'light':'dark'
     applyTheme(theme.value)
     localStorage.setItem(THEME_K,theme.value)
-    Vue.nextTick(renderChart)
+    Vue.nextTick(()=>{renderChart();renderPieChart()})
   }
   const toast=reactive({show:false,message:'',type:'info'})
   const form=reactive({date:dayjs().format('YYYY-MM-DD'),amount:'',rate:'',exchange:'',note:'',type:'入金',assetType:'',currency:'CNY'})
@@ -1474,8 +1505,14 @@ setup(){
   // Chart
   const trendChart=ref(null)
   const weekdayChart=ref(null)
+  const pieChart=ref(null)
   let chartInstance=null
   let weekdayChartInstance=null
+  let pieChartInstance=null
+  const pieMode=ref('in')
+
+  const ASSET_COLORS={'大A':'rgba(251,191,36,.85)','美股':'rgba(59,130,246,.85)','港股':'rgba(239,68,68,.85)','加密货币':'rgba(139,92,246,.85)','基金':'rgba(16,185,129,.85)','黄金':'rgba(245,158,11,.85)','期货':'rgba(99,102,241,.85)','其他':'rgba(107,114,128,.7)','':'rgba(107,114,128,.5)'}
+  function assetColor(at){return ASSET_COLORS[at]||'rgba(107,114,128,.7)'}
   function renderChart(){
     if(!trendChart.value||typeof Chart==='undefined')return
     const rows=periodRows.value
@@ -1555,6 +1592,40 @@ setup(){
     })
   }
 
+  function renderPieChart(){
+    if(!pieChart.value||typeof Chart==='undefined'||!assetTypeRows.value.length)return
+    if(pieChartInstance){pieChartInstance.destroy();pieChartInstance=null}
+    const rows=assetTypeRows.value.filter(r=>r.inTotal>0)
+    if(!rows.length)return
+    const isLight=theme.value==='light'
+    const tickColor=isLight?'#6b645a':'#8b95a5'
+    pieChartInstance=new Chart(pieChart.value,{
+      type:'doughnut',
+      data:{
+        labels:rows.map(r=>r.assetType||'未分类'),
+        datasets:[{
+          data:rows.map(r=>pieMode.value==='in'?r.inTotal:Math.max(r.inTotal+r.net,0)),
+          backgroundColor:rows.map(r=>assetColor(r.assetType)),
+          borderWidth:2,
+          borderColor:isLight?'rgba(255,255,255,.8)':'rgba(18,22,30,.8)',
+          hoverOffset:6
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,cutout:'62%',
+        plugins:{
+          legend:{position:'bottom',labels:{color:tickColor,font:{size:11},padding:14,usePointStyle:true,pointStyleWidth:8}},
+          tooltip:{
+            backgroundColor:isLight?'rgba(255,255,255,.95)':'rgba(20,24,32,.95)',
+            borderColor:isLight?'rgba(0,0,0,.1)':'rgba(255,255,255,.08)',borderWidth:1,
+            titleColor:isLight?'#1a1d23':'#e8eaed',bodyColor:isLight?'#5f6878':'#8b95a5',padding:12,
+            callbacks:{label:ctx=>{const total=ctx.dataset.data.reduce((s,v)=>s+v,0);const pct=total?((ctx.raw/total)*100).toFixed(1):'0';return` ${ctx.label}: ${Number(ctx.raw).toLocaleString('zh-CN',{maximumFractionDigits:0})} (${pct}%)`}}
+          }
+        }
+      }
+    })
+  }
+
   onMounted(()=>{
     load()
     // Default expand: current month if has data, otherwise latest month with data
@@ -1572,12 +1643,14 @@ setup(){
     watch(mobileTab,updateAppClass,{immediate:true})
     window.addEventListener('resize',updateAppClass)
     // Render charts after data loads
-    Vue.nextTick(()=>{renderChart();renderWeekdayChart()})
+    Vue.nextTick(()=>{renderChart();renderWeekdayChart();renderPieChart()})
     watch(periodRows,()=>Vue.nextTick(renderChart))
     watch(behaviorAnalysis,()=>Vue.nextTick(renderWeekdayChart))
+    watch(assetTypeRows,()=>Vue.nextTick(renderPieChart))
+    watch(pieMode,()=>Vue.nextTick(renderPieChart))
   })
 
-  return{entries,sortedEntries,snapshots,period,mobileTab,showMobileAdd,showFilters,editingEntry,showSync,theme,toggleTheme,trendChart,weekdayChart,toast,form,filters,rules,syncCfg,syncStatus,reviewNote,reviewSavedAt,reviewChecklist,
+  return{entries,sortedEntries,snapshots,period,mobileTab,showMobileAdd,showFilters,editingEntry,showSync,theme,toggleTheme,trendChart,weekdayChart,pieChart,pieMode,assetColor,toast,form,filters,rules,syncCfg,syncStatus,reviewNote,reviewSavedAt,reviewChecklist,
     totalIn,totalOut,netPL,roi,allExchanges,allAssetTypes,allMonths,matchedIds,matchCount,filteredStats,hasActiveFilter,activeFilterCount,periodRows,exchangeRows,assetTypeRows,periodCompare,largeTxList,insightSummary,insightAdvice,
     behaviorAnalysis,psychoTags,behaviorAdvice,
     monthlyBudget,saveBudget,curMonthIn,budgetRatio,
