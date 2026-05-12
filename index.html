@@ -1274,7 +1274,7 @@ setup(){
     const filtering=hasActiveFilter.value
     const source=filtering?sortedEntries.value.filter(e=>matchedIds.value.has(e.id)):sortedEntries.value
     source.forEach(e=>{
-      const m=e.date?e.date.slice(0,7):'未知'
+      const m=e.date?e.date.slice(0,4):'未知'
       if(!map.has(m))map.set(m,{key:m,entries:[],inTotal:0,outTotal:0})
       const g=map.get(m);g.entries.push(e)
       if(e.type==='入金')g.inTotal+=amountCNY(e);else g.outTotal+=amountCNY(e)
@@ -1715,10 +1715,10 @@ setup(){
 
   onMounted(()=>{
     load()
-    // Default expand: current month if has data, otherwise latest month with data
-    const curMonth=dayjs().format('YYYY-MM')
-    const months=[...new Set(entries.value.map(e=>e.date?e.date.slice(0,7):'').filter(Boolean))].sort().reverse()
-    expandedMonths.value=new Set([months.includes(curMonth)?curMonth:(months[0]||curMonth)])
+    // Default expand: current year if has data, otherwise latest year with data
+    const curYear=dayjs().format('YYYY')
+    const years=[...new Set(entries.value.map(e=>e.date?e.date.slice(0,4):'').filter(Boolean))].sort().reverse()
+    expandedMonths.value=new Set([years.includes(curYear)?curYear:(years[0]||curYear)])
     // Apply root class since #app mount element isn't compiled by Vue 3
     // Only apply mobile tab class when viewport is mobile (<680px)
     const appEl=document.getElementById('app')
