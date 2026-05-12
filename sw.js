@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cryptoflow-v2';
+const CACHE_NAME = 'flowledger-v1';
 const ASSETS = [
   './',
   './index.html',

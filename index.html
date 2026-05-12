@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#0a0d12">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CryptoFlow">
+<meta name="apple-mobile-web-app-title" content="投记">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>CryptoFlow - 出入金统计与分析</title>
+<title>FlowLedger 投记 · 个人投资记账</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/vue@3.5/dist/vue.global.prod.js"></script>
@@ -172,7 +172,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 
 /* ===== TABLE ===== */
 .table-wrap{overflow-x:auto;margin-top:8px}
-table{width:100%;border-collapse:collapse;min-width:680px}
+table{width:100%;border-collapse:collapse;min-width:820px}
 th,td{padding:12px 10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px}
 th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;background:var(--panel)}
 tr:hover td{background:var(--overlay)}
@@ -523,9 +523,9 @@ tr.row-unmatched td{opacity:.35}
   <!-- ===== HERO ===== -->
   <header class="hero section-records section-stats section-data">
     <div class="hero-info">
-      <p class="kicker">CryptoFlow</p>
-      <h1>出入金统计与盈亏分析</h1>
-      <p class="sub">记录每一笔出入金，追踪盈亏、分析行为、控制 FOMO，让数据帮你做纪律交易。</p>
+      <p class="kicker">FlowLedger · 投记</p>
+      <h1>个人投资出入金记账</h1>
+      <p class="sub">记录大A、美股、港股、加密货币等全渠道投资出入金，追踪真实盈亏、分析行为习惯，用数据代替感觉。</p>
       <blockquote class="hero-quote" id="heroQuote"></blockquote>
     </div>
     <div class="hero-actions">
@@ -550,7 +550,7 @@ tr.row-unmatched td{opacity:.35}
   <!-- ===== BUDGET BAR ===== -->
   <div class="budget-bar-wrap section-records section-stats section-data" v-if="monthlyBudget>0">
     <div class="budget-bar-header">
-      <span class="budget-bar-title">{{ dayjs().format('YYYY-MM') }} 入金预算</span>
+      <span class="budget-bar-title">{{ dayjs().format('YYYY-MM') }} 月度投入预算</span>
       <span class="budget-bar-nums">{{ fmt(curMonthIn) }} / {{ fmt(monthlyBudget) }}</span>
     </div>
     <div class="budget-bar-track">
@@ -563,18 +563,20 @@ tr.row-unmatched td{opacity:.35}
     </div>
   </div>
   <div v-else class="section-records section-stats section-data" style="margin-bottom:14px">
-    <button class="btn btn-ghost btn-sm" @click="monthlyBudget=3000" style="width:100%">设置月度入金预算</button>
+    <button class="btn btn-ghost btn-sm" @click="monthlyBudget=3000" style="width:100%">设置月度投入预算</button>
   </div>
 
   <!-- ===== QUICK ADD ===== -->
   <section class="panel section-records section-not-stats section-not-data quick-add-panel">
     <h2 style="margin-bottom:14px">快速录入</h2>
     <div class="form-grid">
-      <div class="form-group"><label>入金时间</label><input class="form-input" type="date" v-model="form.date"></div>
-      <div class="form-group"><label>金额（元）</label><input class="form-input" type="number" step="0.01" v-model.number="form.amount" placeholder="1000" inputmode="decimal"></div>
-      <div class="form-group"><label>汇率</label><input class="form-input" type="number" step="0.0001" v-model="form.rate" placeholder="7.12" inputmode="decimal"></div>
-      <div class="form-group"><label>交易所</label><input class="form-input" v-model="form.exchange" placeholder="欧易" list="dl-ex"><datalist id="dl-ex"><option v-for="ex in allExchanges" :key="ex" :value="ex"></option></datalist></div>
-      <div class="form-group"><label>{{ form.type==='入金'?'入金理由':'出金备注' }}</label><input class="form-input" v-model="form.note" :placeholder="form.type==='入金'?'为什么要入这笔？如：抄底/补仓/FOMO':'收款渠道/备注'"></div>
+      <div class="form-group"><label>日期</label><input class="form-input" type="date" v-model="form.date"></div>
+      <div class="form-group"><label>资产类型</label><select class="form-input" v-model="form.assetType"><option value="">未分类</option><option value="大A">大A</option><option value="美股">美股</option><option value="港股">港股</option><option value="加密货币">加密货币</option><option value="基金">基金</option><option value="黄金">黄金</option><option value="期货">期货</option><option value="其他">其他</option></select></div>
+      <div class="form-group"><label>账户/平台</label><input class="form-input" v-model="form.exchange" placeholder="如：招商证券/富途/币安" list="dl-ex"><datalist id="dl-ex"><option v-for="ex in allExchanges" :key="ex" :value="ex"></option></datalist></div>
+      <div class="form-group"><label>货币</label><select class="form-input" v-model="form.currency"><option value="CNY">CNY 人民币</option><option value="USD">USD 美元</option><option value="HKD">HKD 港币</option><option value="USDT">USDT</option></select></div>
+      <div class="form-group"><label>金额{{ form.currency!=='CNY'?'（'+form.currency+'）':'（元）' }}</label><input class="form-input" type="number" step="0.01" v-model.number="form.amount" placeholder="1000" inputmode="decimal"></div>
+      <div class="form-group"><label>{{ form.currency!=='CNY'?'汇率（折CNY）':'汇率（选填）' }}</label><input class="form-input" type="number" step="0.0001" v-model="form.rate" :placeholder="form.currency==='HKD'?'0.92':form.currency!=='CNY'?'7.25':''" inputmode="decimal"></div>
+      <div class="form-group"><label>{{ form.type==='入金'?'投入理由':'出金备注' }}</label><input class="form-input" v-model="form.note" :placeholder="form.type==='入金'?'为什么要入这笔？如：定投/补仓/看好行情':'收款渠道/备注'"></div>
       <div class="form-group"><label>类型</label><select class="form-input" v-model="form.type"><option value="入金">入金</option><option value="出金">出金</option></select></div>
       <button class="btn btn-primary" @click="addEntry">添加记录</button>
       <button class="btn btn-ghost" @click="copyLast" :disabled="!entries.length">复制上一笔</button>
@@ -630,8 +632,12 @@ tr.row-unmatched td{opacity:.35}
         <div class="form-group"><label>最大金额</label><input class="form-input" type="number" v-model.number="filters.amountMax" placeholder="不限" inputmode="numeric"></div>
         <button class="btn btn-ghost btn-sm" @click="clearFilters">清空筛选</button>
       </div>
+      <div class="filter-exchange" v-if="allAssetTypes.length">
+        <span class="filter-title">资产类型</span>
+        <span v-for="at in allAssetTypes" :key="at" :class="['chip',{active:filters.assetTypes.includes(at)}]" @click="toggleAssetType(at)">{{ at }}</span>
+      </div>
       <div class="filter-exchange" v-if="allExchanges.length">
-        <span class="filter-title">交易所</span>
+        <span class="filter-title">账户/平台</span>
         <span v-for="ex in allExchanges" :key="ex" :class="['chip',{active:filters.exchanges.includes(ex)}]" @click="toggleEx(ex)">{{ ex }}</span>
       </div>
     </div>
@@ -665,13 +671,18 @@ tr.row-unmatched td{opacity:.35}
           </div>
         </div>
         <table v-show="isMonthOpen(g.key)">
-          <thead><tr><th>日期</th><th>汇率</th><th style="text-align:right">金额（元）</th><th>交易所</th><th>理由/备注</th><th>类型</th><th>操作</th></tr></thead>
+          <thead><tr><th>日期</th><th>资产类型</th><th>账户/平台</th><th style="text-align:right">金额</th><th>货币</th><th>汇率</th><th>理由/备注</th><th>类型</th><th>操作</th></tr></thead>
           <tbody>
             <tr v-for="e in g.entries" :key="e.id" :class="rowClass(e)" :id="'row-'+e.id">
               <td><input type="date" :value="e.date" @change="updateField(e.id,'date',$event.target.value)"></td>
-              <td><input type="number" step="0.0001" :value="e.rate" @change="updateField(e.id,'rate',$event.target.value)" style="width:80px"></td>
-              <td style="text-align:right"><input type="number" step="0.01" :value="e.amount" @change="updateField(e.id,'amount',$event.target.value)" style="text-align:right;font-weight:700" :style="{color:e.type==='入金'?'var(--red)':'var(--green)'}"></td>
+              <td><select :value="e.assetType||''" @change="updateField(e.id,'assetType',$event.target.value)" style="min-width:80px"><option value="">未分类</option><option value="大A">大A</option><option value="美股">美股</option><option value="港股">港股</option><option value="加密货币">加密货币</option><option value="基金">基金</option><option value="黄金">黄金</option><option value="期货">期货</option><option value="其他">其他</option></select></td>
               <td><input type="text" :value="e.exchange" @change="updateField(e.id,'exchange',$event.target.value)"></td>
+              <td style="text-align:right">
+                <input type="number" step="0.01" :value="e.amount" @change="updateField(e.id,'amount',$event.target.value)" style="text-align:right;font-weight:700;min-width:80px" :style="{color:e.type==='入金'?'var(--red)':'var(--green)'}">
+                <div v-if="e.currency&&e.currency!=='CNY'&&e.rate" style="font-size:10px;color:var(--muted);text-align:right">≈ {{ fmt(amountCNY(e)) }} CNY</div>
+              </td>
+              <td><select :value="e.currency||'CNY'" @change="updateField(e.id,'currency',$event.target.value)" style="min-width:60px"><option value="CNY">CNY</option><option value="USD">USD</option><option value="HKD">HKD</option><option value="USDT">USDT</option></select></td>
+              <td><input type="number" step="0.0001" :value="e.rate" @change="updateField(e.id,'rate',$event.target.value)" style="width:72px"></td>
               <td><input type="text" :value="e.note" @change="updateField(e.id,'note',$event.target.value)"></td>
               <td><select :value="e.type" @change="updateField(e.id,'type',$event.target.value)"><option value="入金">入金</option><option value="出金">出金</option></select></td>
               <td><span class="action-link del" @click="removeEntry(e.id)">删除</span></td>
@@ -701,11 +712,16 @@ tr.row-unmatched td{opacity:.35}
               <span class="record-card-date">{{ e.date }}</span>
               <span :class="['record-card-tag',e.type==='入金'?'tag-in':'tag-out']">{{ e.type }}</span>
             </div>
-            <div :class="['record-card-amount']" :style="{color:e.type==='入金'?'var(--red)':'var(--green)'}">{{ fmt(e.amount) }} 元</div>
-            <div class="record-card-rate" v-if="e.rate">汇率 {{ e.rate }}</div>
+            <div :class="['record-card-amount']" :style="{color:e.type==='入金'?'var(--red)':'var(--green)'}">
+              {{ fmt(e.amount) }} {{ e.currency&&e.currency!=='CNY'?e.currency:'元' }}
+              <span v-if="e.currency&&e.currency!=='CNY'&&e.rate" style="font-size:13px;color:var(--muted);font-weight:400"> ≈{{ fmt(amountCNY(e)) }}元</span>
+            </div>
+            <div class="record-card-rate" v-if="e.assetType||e.exchange">
+              <span v-if="e.assetType" style="background:var(--accent-dim);color:var(--accent);padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700;margin-right:6px">{{ e.assetType }}</span>
+              <span v-if="e.exchange">{{ e.exchange }}</span>
+            </div>
             <div class="record-card-bottom">
               <div class="record-card-meta">
-                <span v-if="e.exchange" class="record-card-exchange">{{ e.exchange }}</span>
                 <span v-if="e.note" style="color:var(--dim)">{{ e.note }}</span>
               </div>
               <button class="record-card-del" @click.stop="removeEntry(e.id)">删除</button>
@@ -763,16 +779,41 @@ tr.row-unmatched td{opacity:.35}
             <div class="stat-card-row"><span>累计盈亏</span><span :style="{color:row.cum>=0?'var(--blue)':'var(--red)'}">{{ fmt(row.cum) }}</span></div>
           </div>
         </div>
-        <!-- Exchange stats -->
-        <h4 style="font-size:12px;color:var(--muted);margin:18px 0 10px;text-transform:uppercase;letter-spacing:.3px">交易所盈亏</h4>
+        <!-- Asset type stats -->
+        <h4 style="font-size:12px;color:var(--muted);margin:18px 0 10px;text-transform:uppercase;letter-spacing:.3px">资产类型盈亏（折CNY）</h4>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>交易所</th><th style="text-align:right">入金合计</th><th style="text-align:right">出金合计</th><th style="text-align:right">净盈亏</th></tr></thead>
+            <thead><tr><th>资产类型</th><th style="text-align:right">投入合计</th><th style="text-align:right">取出合计</th><th style="text-align:right">净盈亏</th></tr></thead>
+            <tbody>
+              <tr v-for="row in assetTypeRows" :key="row.assetType">
+                <td style="font-weight:600">{{ row.assetType||'未分类' }}</td>
+                <td class="mono" style="text-align:right;color:var(--red)">{{ fmt(row.inTotal) }}</td>
+                <td class="mono" style="text-align:right;color:var(--green)">{{ fmt(row.outTotal) }}</td>
+                <td class="mono" style="text-align:right" :style="{color:row.net>=0?'var(--blue)':'var(--red)'}">{{ fmt(row.net) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="stats-cards">
+          <div v-for="row in assetTypeRows" :key="row.assetType" class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-key">{{ row.assetType||'未分类' }}</span>
+              <span class="mono" :style="{color:row.net>=0?'var(--blue)':'var(--red)',fontWeight:700,fontSize:'15px'}">{{ (row.net>=0?'+':'')+fmt(row.net) }}</span>
+            </div>
+            <div class="stat-card-row"><span>投入</span><span style="color:var(--red)">{{ fmt(row.inTotal) }}</span></div>
+            <div class="stat-card-row"><span>取出</span><span style="color:var(--green)">{{ fmt(row.outTotal) }}</span></div>
+          </div>
+        </div>
+        <!-- Account/Exchange stats -->
+        <h4 style="font-size:12px;color:var(--muted);margin:18px 0 10px;text-transform:uppercase;letter-spacing:.3px">账户/平台盈亏（折CNY）</h4>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>账户/平台</th><th style="text-align:right">投入合计</th><th style="text-align:right">取出合计</th><th style="text-align:right">净盈亏</th></tr></thead>
             <tbody>
               <tr v-for="row in exchangeRows" :key="row.exchange">
                 <td style="font-weight:600">{{ row.exchange }}</td>
-                <td class="mono" style="text-align:right">{{ fmt(row.inTotal) }}</td>
-                <td class="mono" style="text-align:right">{{ fmt(row.outTotal) }}</td>
+                <td class="mono" style="text-align:right;color:var(--red)">{{ fmt(row.inTotal) }}</td>
+                <td class="mono" style="text-align:right;color:var(--green)">{{ fmt(row.outTotal) }}</td>
                 <td class="mono" style="text-align:right" :style="{color:row.net>=0?'var(--blue)':'var(--red)'}">{{ fmt(row.net) }}</td>
               </tr>
             </tbody>
@@ -784,8 +825,8 @@ tr.row-unmatched td{opacity:.35}
               <span class="stat-card-key">{{ row.exchange }}</span>
               <span class="mono" :style="{color:row.net>=0?'var(--blue)':'var(--red)',fontWeight:700,fontSize:'15px'}">{{ (row.net>=0?'+':'')+fmt(row.net) }}</span>
             </div>
-            <div class="stat-card-row"><span>入金</span><span style="color:var(--red)">{{ fmt(row.inTotal) }}</span></div>
-            <div class="stat-card-row"><span>出金</span><span style="color:var(--green)">{{ fmt(row.outTotal) }}</span></div>
+            <div class="stat-card-row"><span>投入</span><span style="color:var(--red)">{{ fmt(row.inTotal) }}</span></div>
+            <div class="stat-card-row"><span>取出</span><span style="color:var(--green)">{{ fmt(row.outTotal) }}</span></div>
           </div>
         </div>
       </div>
@@ -824,7 +865,7 @@ tr.row-unmatched td{opacity:.35}
   <!-- ===== BEHAVIOR ANALYSIS ===== -->
   <!-- ===== BEHAVIOR ANALYSIS ===== -->
   <section class="panel section-stats section-not-records section-not-data" v-if="behaviorAnalysis">
-    <div class="panel-header"><h2>入金行为分析</h2></div>
+    <div class="panel-header"><h2>投入行为分析</h2></div>
 
     <!-- Top: Psychology tags + advice (full width) -->
     <div style="margin-bottom:18px">
@@ -842,11 +883,11 @@ tr.row-unmatched td{opacity:.35}
     <!-- Middle: Key metrics (full width grid) -->
     <div class="behavior-metrics" style="margin-bottom:18px">
       <div class="behavior-metric"><p>平均间隔</p><strong>{{ behaviorAnalysis.avgInterval }} 天</strong></div>
-      <div class="behavior-metric"><p>密集入金</p><strong>{{ behaviorAnalysis.denseCount }} 次</strong></div>
+      <div class="behavior-metric"><p>密集投入</p><strong>{{ behaviorAnalysis.denseCount }} 次</strong></div>
       <div class="behavior-metric"><p>最大单笔</p><strong>{{ fmt(behaviorAnalysis.maxAmount) }}</strong></div>
       <div class="behavior-metric"><p>平均金额</p><strong>{{ fmt(behaviorAnalysis.avgAmount) }}</strong></div>
       <div class="behavior-metric"><p>最长连续入金</p><strong>{{ behaviorAnalysis.maxStreak }} 笔</strong></div>
-      <div class="behavior-metric"><p>总入金笔数</p><strong>{{ behaviorAnalysis.totalIn }} 笔</strong></div>
+      <div class="behavior-metric"><p>总投入笔数</p><strong>{{ behaviorAnalysis.totalIn }} 笔</strong></div>
     </div>
 
     <!-- Bottom: Charts side by side -->
@@ -893,11 +934,13 @@ tr.row-unmatched td{opacity:.35}
       <div class="modal-head"><div class="modal-title">新增记录</div><button class="modal-close" @click="showMobileAdd=false">&times;</button></div>
       <div class="modal-body">
         <div class="form-group"><label>类型</label><select class="form-input" v-model="form.type"><option value="入金">入金</option><option value="出金">出金</option></select></div>
-        <div class="form-group"><label>时间</label><input class="form-input" type="date" v-model="form.date"></div>
-        <div class="form-group"><label>金额（元）</label><input class="form-input" type="number" step="0.01" v-model.number="form.amount" inputmode="decimal"></div>
-        <div class="form-group"><label>汇率</label><input class="form-input" type="number" step="0.0001" v-model="form.rate" inputmode="decimal"></div>
-        <div class="form-group"><label>交易所</label><input class="form-input" v-model="form.exchange" list="dl-ex2"><datalist id="dl-ex2"><option v-for="ex in allExchanges" :key="ex" :value="ex"></option></datalist></div>
-        <div class="form-group"><label>{{ form.type==='入金'?'入金理由':'出金备注' }}</label><input class="form-input" v-model="form.note" :placeholder="form.type==='入金'?'为什么要入这笔？':'收款渠道/备注'"></div>
+        <div class="form-group"><label>日期</label><input class="form-input" type="date" v-model="form.date"></div>
+        <div class="form-group"><label>资产类型</label><select class="form-input" v-model="form.assetType"><option value="">未分类</option><option value="大A">大A</option><option value="美股">美股</option><option value="港股">港股</option><option value="加密货币">加密货币</option><option value="基金">基金</option><option value="黄金">黄金</option><option value="期货">期货</option><option value="其他">其他</option></select></div>
+        <div class="form-group"><label>账户/平台</label><input class="form-input" v-model="form.exchange" list="dl-ex2" placeholder="如：招商证券/富途/币安"><datalist id="dl-ex2"><option v-for="ex in allExchanges" :key="ex" :value="ex"></option></datalist></div>
+        <div class="form-group"><label>货币</label><select class="form-input" v-model="form.currency"><option value="CNY">CNY 人民币</option><option value="USD">USD 美元</option><option value="HKD">HKD 港币</option><option value="USDT">USDT</option></select></div>
+        <div class="form-group"><label>金额{{ form.currency!=='CNY'?'（'+form.currency+'）':'（元）' }}</label><input class="form-input" type="number" step="0.01" v-model.number="form.amount" inputmode="decimal"></div>
+        <div class="form-group" v-if="form.currency!=='CNY'"><label>汇率（折CNY）</label><input class="form-input" type="number" step="0.0001" v-model="form.rate" inputmode="decimal" :placeholder="form.currency==='HKD'?'0.92':'7.25'"></div>
+        <div class="form-group"><label>{{ form.type==='入金'?'投入理由':'出金备注' }}</label><input class="form-input" v-model="form.note" :placeholder="form.type==='入金'?'为什么要投入这笔？':'收款渠道/备注'"></div>
       </div>
       <div class="modal-foot">
         <button class="btn btn-ghost" style="flex:1" @click="copyLast">复制上一笔</button>
@@ -913,11 +956,13 @@ tr.row-unmatched td{opacity:.35}
       <div class="modal-head"><div class="modal-title">编辑记录</div><button class="modal-close" @click="editingEntry=null">&times;</button></div>
       <div class="modal-body">
         <div class="form-group"><label>类型</label><select class="form-input" v-model="editingEntry.type"><option value="入金">入金</option><option value="出金">出金</option></select></div>
-        <div class="form-group"><label>时间</label><input class="form-input" type="date" v-model="editingEntry.date"></div>
-        <div class="form-group"><label>金额（元）</label><input class="form-input" type="number" step="0.01" v-model.number="editingEntry.amount" inputmode="decimal"></div>
-        <div class="form-group"><label>汇率</label><input class="form-input" type="number" step="0.0001" v-model="editingEntry.rate" inputmode="decimal"></div>
-        <div class="form-group"><label>交易所</label><input class="form-input" v-model="editingEntry.exchange" list="dl-ex3"><datalist id="dl-ex3"><option v-for="ex in allExchanges" :key="ex" :value="ex"></option></datalist></div>
-        <div class="form-group"><label>{{ editingEntry.type==='入金'?'入金理由':'出金备注' }}</label><input class="form-input" v-model="editingEntry.note" :placeholder="editingEntry.type==='入金'?'为什么要入这笔？':'收款渠道/备注'"></div>
+        <div class="form-group"><label>日期</label><input class="form-input" type="date" v-model="editingEntry.date"></div>
+        <div class="form-group"><label>资产类型</label><select class="form-input" v-model="editingEntry.assetType"><option value="">未分类</option><option value="大A">大A</option><option value="美股">美股</option><option value="港股">港股</option><option value="加密货币">加密货币</option><option value="基金">基金</option><option value="黄金">黄金</option><option value="期货">期货</option><option value="其他">其他</option></select></div>
+        <div class="form-group"><label>账户/平台</label><input class="form-input" v-model="editingEntry.exchange" list="dl-ex3"><datalist id="dl-ex3"><option v-for="ex in allExchanges" :key="ex" :value="ex"></option></datalist></div>
+        <div class="form-group"><label>货币</label><select class="form-input" v-model="editingEntry.currency"><option value="CNY">CNY 人民币</option><option value="USD">USD 美元</option><option value="HKD">HKD 港币</option><option value="USDT">USDT</option></select></div>
+        <div class="form-group"><label>金额{{ (editingEntry.currency||'CNY')!=='CNY'?'（'+editingEntry.currency+'）':'（元）' }}</label><input class="form-input" type="number" step="0.01" v-model.number="editingEntry.amount" inputmode="decimal"></div>
+        <div class="form-group" v-if="editingEntry.currency&&editingEntry.currency!=='CNY'"><label>汇率（折CNY）</label><input class="form-input" type="number" step="0.0001" v-model="editingEntry.rate" inputmode="decimal"></div>
+        <div class="form-group"><label>{{ editingEntry.type==='入金'?'投入理由':'出金备注' }}</label><input class="form-input" v-model="editingEntry.note" :placeholder="editingEntry.type==='入金'?'为什么要投入这笔？':'收款渠道/备注'"></div>
       </div>
       <div class="modal-foot">
         <button class="btn btn-danger" style="flex:1" @click="removeEntry(editingEntry.id);editingEntry=null">删除</button>
@@ -938,24 +983,30 @@ tr.row-unmatched td{opacity:.35}
 <script>
 dayjs.extend(dayjs_plugin_isoWeek);dayjs.extend(dayjs_plugin_weekOfYear);dayjs.locale('zh-cn')
 
-const SK='crypto_cashflow_entries_v1',SNAP_K='crypto_cashflow_snapshots_v1',RULES_K='crypto_cashflow_rules_v1',REVIEW_K='crypto_cashflow_reviews_v1',SYNC_K='crypto_cashflow_sync_v1'
+const SK='flowledger_entries_v1',SNAP_K='flowledger_snapshots_v1',RULES_K='flowledger_rules_v1',REVIEW_K='flowledger_reviews_v1',SYNC_K='flowledger_sync_v1'
+// Migrate from old CryptoFlow keys (backward compat)
+;(()=>{const OLD='crypto_cashflow_entries_v1';if(!localStorage.getItem(SK)&&localStorage.getItem(OLD)){localStorage.setItem(SK,localStorage.getItem(OLD))}})()
 const genId=()=>crypto.randomUUID?crypto.randomUUID():('r_'+Date.now()+'_'+Math.random().toString(36).slice(2,6))
 const clone=o=>JSON.parse(JSON.stringify(o))
 
 // Demo data (fictional) — 新用户首次打开看到的演示数据，清空后可自行录入或导入
 const PRELOADED=[
-{"日期":"2025.10.05","汇率":"7.15","金额（元）":"2000","交易所":"币安","备注":"首次入金试水","类型":"入金"},
-{"日期":"2025.10.18","汇率":"7.12","金额（元）":"1000","交易所":"欧易","备注":"定投","类型":"入金"},
-{"日期":"2025.11.03","汇率":"7.18","金额（元）":"1500","交易所":"币安","备注":"看好行情加仓","类型":"入金"},
-{"日期":"2025.11.20","汇率":"7.10","金额（元）":"3000","交易所":"欧易","备注":"","类型":"出金"},
-{"日期":"2025.12.01","汇率":"7.08","金额（元）":"800","交易所":"欧易","备注":"小额定投","类型":"入金"},
-{"日期":"2025.12.15","汇率":"7.05","金额（元）":"1000","交易所":"币安","备注":"","类型":"入金"},
-{"日期":"2026.01.06","汇率":"6.95","金额（元）":"2000","交易所":"欧易","备注":"FOMO 追涨","类型":"入金"},
-{"日期":"2026.01.20","汇率":"6.98","金额（元）":"1500","交易所":"币安","备注":"补仓","类型":"入金"},
-{"日期":"2026.02.10","汇率":"7.02","金额（元）":"2500","交易所":"欧易","备注":"","类型":"出金"},
-{"日期":"2026.02.28","汇率":"7.00","金额（元）":"1000","交易所":"欧易","备注":"定投","类型":"入金"},
-{"日期":"2026.03.15","汇率":"6.92","金额（元）":"500","交易所":"币安","备注":"抄底","类型":"入金"},
-{"日期":"2026.04.01","汇率":"6.88","金额（元）":"1000","交易所":"欧易","备注":"","类型":"入金"}
+  {date:"2025-10-08",amount:10000,rate:"",exchange:"招商证券",note:"沪深300定投",type:"入金",assetType:"大A",currency:"CNY"},
+  {date:"2025-10-15",amount:500,rate:7.18,exchange:"富途",note:"买入苹果AAPL",type:"入金",assetType:"美股",currency:"USD"},
+  {date:"2025-10-22",amount:2000,rate:"",exchange:"币安",note:"首次入金试水",type:"入金",assetType:"加密货币",currency:"CNY"},
+  {date:"2025-11-05",amount:8000,rate:"",exchange:"招商证券",note:"加仓医药ETF",type:"入金",assetType:"大A",currency:"CNY"},
+  {date:"2025-11-12",amount:300,rate:7.15,exchange:"富途",note:"买入NVDA",type:"入金",assetType:"美股",currency:"USD"},
+  {date:"2025-11-20",amount:12000,rate:"",exchange:"招商证券",note:"部分止盈",type:"出金",assetType:"大A",currency:"CNY"},
+  {date:"2025-12-03",amount:1000,rate:"",exchange:"欧易",note:"小额定投BTC",type:"入金",assetType:"加密货币",currency:"CNY"},
+  {date:"2025-12-10",amount:2000,rate:0.91,exchange:"富途",note:"港股腾讯",type:"入金",assetType:"港股",currency:"HKD"},
+  {date:"2025-12-20",amount:5000,rate:"",exchange:"招商证券",note:"年底定投",type:"入金",assetType:"大A",currency:"CNY"},
+  {date:"2026-01-08",amount:1000,rate:7.10,exchange:"富途",note:"补仓AAPL",type:"入金",assetType:"美股",currency:"USD"},
+  {date:"2026-01-15",amount:1500,rate:"",exchange:"币安",note:"",type:"出金",assetType:"加密货币",currency:"CNY"},
+  {date:"2026-02-10",amount:8000,rate:"",exchange:"招商证券",note:"",type:"出金",assetType:"大A",currency:"CNY"},
+  {date:"2026-02-20",amount:500,rate:7.05,exchange:"富途",note:"定投纳指ETF",type:"入金",assetType:"美股",currency:"USD"},
+  {date:"2026-03-05",amount:5000,rate:"",exchange:"招商证券",note:"加仓A500ETF",type:"入金",assetType:"大A",currency:"CNY"},
+  {date:"2026-03-18",amount:1000,rate:"",exchange:"欧易",note:"补仓",type:"入金",assetType:"加密货币",currency:"CNY"},
+  {date:"2026-04-01",amount:3000,rate:0.90,exchange:"富途",note:"港股科技ETF",type:"入金",assetType:"港股",currency:"HKD"},
 ]
 
 function normDate(s){
@@ -968,11 +1019,13 @@ function normRow(row){
   let date=normDate(row.date||row['日期']||row['入金时间']||row['时间'])
   const amt=row.amount||row['金额（元）']||row['金额']||0
   let rate=row.rate??row['汇率']??'';if(rate==='-')rate=''
-  const exchange=row.exchange||row['交易所']||''
-  const note=row.note||row['备注']||''
+  const exchange=row.exchange||row['交易所']||row['账户/平台']||row['账户']||''
+  const note=row.note||row['备注']||row['理由/备注']||''
   const type=row.type||row['类型']||'入金'
+  const assetType=row.assetType||row['资产类型']||''
+  const currency=row.currency||row['货币']||'CNY'
   if(!date||!Number(amt))return null
-  return{id:genId(),date,amount:Number(amt),rate:rate===''?'':Number(rate),exchange,note,type}
+  return{id:genId(),date,amount:Number(amt),rate:rate===''?'':Number(rate),exchange,note,type,assetType,currency}
 }
 
 function defRules(){return{lossWarn:3000,lossCritical:5000,roiWarn:0.6,inflowRatio:1.8,largeTx:5000,lossStreak:2}}
@@ -1006,7 +1059,7 @@ setup(){
   function saveBudget(){localStorage.setItem(BUDGET_K,String(monthlyBudget.value));showToast('预算已保存','success')}
   const curMonthIn=computed(()=>{
     const mk=dayjs().format('YYYY-MM')
-    return entries.value.filter(e=>e.type==='入金'&&e.date&&e.date.startsWith(mk)).reduce((s,e)=>s+(e.amount||0),0)
+    return entries.value.filter(e=>e.type==='入金'&&e.date&&e.date.startsWith(mk)).reduce((s,e)=>s+amountCNY(e),0)
   })
   const budgetRatio=computed(()=>monthlyBudget.value>0?curMonthIn.value/monthlyBudget.value:0)
 
@@ -1028,8 +1081,8 @@ setup(){
     Vue.nextTick(renderChart)
   }
   const toast=reactive({show:false,message:'',type:'info'})
-  const form=reactive({date:dayjs().format('YYYY-MM-DD'),amount:'',rate:'',exchange:'',note:'',type:'入金'})
-  const filters=reactive({month:'',type:'',keyword:'',dateFrom:'',dateTo:'',amountMin:'',amountMax:'',exchanges:[]})
+  const form=reactive({date:dayjs().format('YYYY-MM-DD'),amount:'',rate:'',exchange:'',note:'',type:'入金',assetType:'',currency:'CNY'})
+  const filters=reactive({month:'',type:'',keyword:'',dateFrom:'',dateTo:'',amountMin:'',amountMax:'',exchanges:[],assetTypes:[]})
   const rules=reactive(defRules())
   const syncCfg=reactive({url:'',user:'',pass:''})
   const syncStatus=ref('未配置')
@@ -1055,13 +1108,16 @@ setup(){
 
   function showToast(msg,type='info'){toast.message=msg;toast.type=type;toast.show=true;if(toastT)clearTimeout(toastT);toastT=setTimeout(()=>toast.show=false,2500)}
   function fmt(v){if(v==null||isNaN(v))return'-';return Number(v).toLocaleString('zh-CN',{maximumFractionDigits:2})}
+  // Convert entry amount to CNY (for non-CNY currencies with rate)
+  function amountCNY(e){const cur=e.currency||'CNY';if(cur!=='CNY'&&e.rate&&Number(e.rate)>0)return(e.amount||0)*Number(e.rate);return e.amount||0}
 
   // Computed
   const sortedEntries=computed(()=>[...entries.value].sort((a,b)=>a.date<b.date?1:-1))
   const allExchanges=computed(()=>[...new Set(entries.value.map(e=>e.exchange).filter(Boolean))].sort())
   const allMonths=computed(()=>[...new Set(entries.value.map(e=>e.date?e.date.slice(0,7):'').filter(Boolean))].sort())
-  const totalIn=computed(()=>entries.value.filter(e=>e.type==='入金').reduce((s,e)=>s+(e.amount||0),0))
-  const totalOut=computed(()=>entries.value.filter(e=>e.type==='出金').reduce((s,e)=>s+(e.amount||0),0))
+  const allAssetTypes=computed(()=>{const ORDER=['大A','美股','港股','加密货币','基金','黄金','期货','其他'];const present=new Set(entries.value.map(e=>e.assetType).filter(Boolean));return ORDER.filter(t=>present.has(t))})
+  const totalIn=computed(()=>entries.value.filter(e=>e.type==='入金').reduce((s,e)=>s+amountCNY(e),0))
+  const totalOut=computed(()=>entries.value.filter(e=>e.type==='出金').reduce((s,e)=>s+amountCNY(e),0))
   const netPL=computed(()=>totalOut.value-totalIn.value)
   const roi=computed(()=>totalIn.value?totalOut.value/totalIn.value:0)
 
@@ -1069,30 +1125,32 @@ setup(){
   function matchEntry(e){
     if(filters.month&&e.date&&e.date.slice(0,7)!==filters.month)return false
     if(filters.type&&e.type!==filters.type)return false
-    if(filters.keyword){const k=filters.keyword.toLowerCase();if(!(`${e.exchange} ${e.note}`).toLowerCase().includes(k))return false}
+    if(filters.keyword){const k=filters.keyword.toLowerCase();if(!(`${e.exchange} ${e.note} ${e.assetType||''}`).toLowerCase().includes(k))return false}
     if(filters.dateFrom&&e.date<filters.dateFrom)return false
     if(filters.dateTo&&e.date>filters.dateTo)return false
     if(filters.amountMin&&e.amount<filters.amountMin)return false
     if(filters.amountMax&&e.amount>filters.amountMax)return false
     if(filters.exchanges.length&&!filters.exchanges.includes(e.exchange))return false
+    if(filters.assetTypes.length&&!filters.assetTypes.includes(e.assetType||''))return false
     return true
   }
   const matchedIds=computed(()=>new Set(entries.value.filter(matchEntry).map(e=>e.id)))
   const matchCount=computed(()=>matchedIds.value.size)
   const filteredStats=computed(()=>{
     const matched=entries.value.filter(e=>matchedIds.value.has(e.id))
-    const inTotal=matched.filter(e=>e.type==='入金').reduce((s,e)=>s+(e.amount||0),0)
-    const outTotal=matched.filter(e=>e.type==='出金').reduce((s,e)=>s+(e.amount||0),0)
+    const inTotal=matched.filter(e=>e.type==='入金').reduce((s,e)=>s+amountCNY(e),0)
+    const outTotal=matched.filter(e=>e.type==='出金').reduce((s,e)=>s+amountCNY(e),0)
     const dates=matched.map(e=>e.date).filter(Boolean).sort()
     return{inTotal,outTotal,net:outTotal-inTotal,count:matched.length,firstDate:dates[0]||'',lastDate:dates[dates.length-1]||''}
   })
   function rowClass(e){const hasFilter=filters.month||filters.type||filters.keyword||filters.dateFrom||filters.dateTo||filters.amountMin||filters.amountMax||filters.exchanges.length;if(!hasFilter)return'';return matchedIds.value.has(e.id)?'row-matched':'row-unmatched'}
   function toggleEx(ex){const i=filters.exchanges.indexOf(ex);i>=0?filters.exchanges.splice(i,1):filters.exchanges.push(ex)}
-  function clearFilters(){filters.month='';filters.type='';filters.keyword='';filters.dateFrom='';filters.dateTo='';filters.amountMin='';filters.amountMax='';filters.exchanges=[]}
+  function toggleAssetType(at){const i=filters.assetTypes.indexOf(at);i>=0?filters.assetTypes.splice(i,1):filters.assetTypes.push(at)}
+  function clearFilters(){filters.month='';filters.type='';filters.keyword='';filters.dateFrom='';filters.dateTo='';filters.amountMin='';filters.amountMax='';filters.exchanges=[];filters.assetTypes=[]}
   function scrollToFirstMatch(){const id=[...matchedIds.value][0];if(!id){showToast('无匹配','info');return};const el=document.getElementById('row-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'})}
   // Month groups for flow records
   const expandedMonths=ref(new Set())
-  const hasActiveFilter=computed(()=>!!(filters.month||filters.type||filters.keyword||filters.dateFrom||filters.dateTo||filters.amountMin||filters.amountMax||filters.exchanges.length))
+  const hasActiveFilter=computed(()=>!!(filters.month||filters.type||filters.keyword||filters.dateFrom||filters.dateTo||filters.amountMin||filters.amountMax||filters.exchanges.length||filters.assetTypes.length))
   const groupedEntries=computed(()=>{
     const map=new Map()
     const filtering=hasActiveFilter.value
@@ -1101,7 +1159,7 @@ setup(){
       const m=e.date?e.date.slice(0,7):'未知'
       if(!map.has(m))map.set(m,{key:m,entries:[],inTotal:0,outTotal:0})
       const g=map.get(m);g.entries.push(e)
-      if(e.type==='入金')g.inTotal+=e.amount||0;else g.outTotal+=e.amount||0
+      if(e.type==='入金')g.inTotal+=amountCNY(e);else g.outTotal+=amountCNY(e)
     })
     return[...map.values()].sort((a,b)=>b.key.localeCompare(a.key)).map(g=>({...g,net:g.outTotal-g.inTotal}))
   })
@@ -1110,7 +1168,7 @@ setup(){
   function expandAllMonths(){expandedMonths.value=new Set(groupedEntries.value.map(g=>g.key))}
   function collapseAllMonths(){expandedMonths.value=new Set()}
 
-  const activeFilterCount=computed(()=>{let n=0;if(filters.month)n++;if(filters.type)n++;if(filters.keyword)n++;if(filters.dateFrom)n++;if(filters.dateTo)n++;if(filters.amountMin)n++;if(filters.amountMax)n++;if(filters.exchanges.length)n++;return n})
+  const activeFilterCount=computed(()=>{let n=0;if(filters.month)n++;if(filters.type)n++;if(filters.keyword)n++;if(filters.dateFrom)n++;if(filters.dateTo)n++;if(filters.amountMin)n++;if(filters.amountMax)n++;if(filters.exchanges.length)n++;if(filters.assetTypes.length)n++;return n})
   function openEditModal(e){editingEntry.value={...e}}
   function saveEditEntry(){
     if(!editingEntry.value)return
@@ -1119,7 +1177,8 @@ setup(){
     e.date=editingEntry.value.date;e.amount=Number(editingEntry.value.amount)||0
     e.rate=editingEntry.value.rate===''?'':Number(editingEntry.value.rate)
     e.exchange=(editingEntry.value.exchange||'').trim();e.note=(editingEntry.value.note||'').trim()
-    e.type=editingEntry.value.type;snap();save();editingEntry.value=null;showToast('已保存','success')
+    e.type=editingEntry.value.type;e.assetType=editingEntry.value.assetType||'';e.currency=editingEntry.value.currency||'CNY'
+    snap();save();editingEntry.value=null;showToast('已保存','success')
   }
 
   // CRUD
@@ -1134,14 +1193,14 @@ setup(){
     if(recent.length){
       const lastDate=dayjs(recent[0].date)
       const gap=now.diff(lastDate,'day')
-      if(gap>=0&&gap<=1)warnings.push('距上次入金仅 '+gap+' 天，建议冷静 24 小时再操作')
-      else if(gap>=0&&gap<=3)warnings.push('距上次入金仅 '+gap+' 天，注意控制入金频率')
+      if(gap>=0&&gap<=1)warnings.push('距上次投入仅 '+gap+' 天，建议冷静 24 小时再操作')
+      else if(gap>=0&&gap<=3)warnings.push('距上次投入仅 '+gap+' 天，注意控制投入频率')
     }
 
     // Check this week deposit count
     const weekStart=now.startOf('week')
     const weekDeposits=entries.value.filter(e=>e.type==='入金'&&e.date>=weekStart.format('YYYY-MM-DD')&&e.date<=now.format('YYYY-MM-DD'))
-    if(weekDeposits.length>=3)warnings.push('本周已入金 '+weekDeposits.length+' 次，是否在追单？')
+    if(weekDeposits.length>=3)warnings.push('本周已投入 '+weekDeposits.length+' 次，频率偏高，是否在追涨？')
 
     // Check this month vs budget
     const monthKey=now.format('YYYY-MM')
@@ -1149,14 +1208,14 @@ setup(){
     const budget=monthlyBudget.value
     if(budget>0){
       const afterAdd=monthIn+Number(form.amount||0)
-      if(afterAdd>budget)warnings.push('本月入金将达 '+fmt(afterAdd)+'，超出预算 '+fmt(budget))
-      else if(afterAdd>budget*0.8)warnings.push('本月入金将达 '+fmt(afterAdd)+'，接近预算上限 '+fmt(budget))
+      if(afterAdd>budget)warnings.push('本月投入将达 '+fmt(afterAdd)+'，超出预算 '+fmt(budget))
+      else if(afterAdd>budget*0.8)warnings.push('本月投入将达 '+fmt(afterAdd)+'，接近预算上限 '+fmt(budget))
     }
 
     // Check amount vs average
     if(recent.length>=3){
       const avg=recent.slice(0,10).reduce((s,e)=>s+(e.amount||0),0)/Math.min(recent.length,10)
-      if(Number(form.amount)>avg*2)warnings.push('本笔金额 '+fmt(form.amount)+' 是近期均值 '+fmt(avg)+' 的 '+(form.amount/avg).toFixed(1)+' 倍')
+      if(Number(form.amount)>avg*2)warnings.push('本笔金额 '+fmt(form.amount)+' '+( form.currency!=='CNY'?form.currency:'元')+' 是近期均值的 '+(form.amount/avg).toFixed(1)+' 倍，是否冲动操作？')
     }
 
     return warnings
@@ -1167,14 +1226,14 @@ setup(){
     // Calm-down check
     const warns=getDepositWarnings()
     if(warns.length){
-      const msg='⚠️ 冷静提醒\n\n'+warns.map(w=>'• '+w).join('\n')+'\n\n确定要继续入金吗？'
+      const msg='⚠️ 冷静提醒\n\n'+warns.map(w=>'• '+w).join('\n')+'\n\n确定要继续投入吗？'
       if(!confirm(msg))return
     }
-    entries.value.unshift({id:genId(),date:form.date||dayjs().format('YYYY-MM-DD'),amount:Number(form.amount),rate:form.rate?Number(form.rate):'',exchange:form.exchange.trim(),note:form.note.trim(),type:form.type})
+    entries.value.unshift({id:genId(),date:form.date||dayjs().format('YYYY-MM-DD'),amount:Number(form.amount),rate:form.rate?Number(form.rate):'',exchange:form.exchange.trim(),note:form.note.trim(),type:form.type,assetType:form.assetType,currency:form.currency||'CNY'})
     snap();save();form.amount='';form.note='';showToast('已添加','success')
   }
   function mobileAddEntry(){const before=entries.value.length;addEntry();if(entries.value.length>before)showMobileAdd.value=false}
-  function copyLast(){const e=sortedEntries.value[0];if(!e)return;form.date=e.date;form.amount=e.amount;form.rate=e.rate||'';form.exchange=e.exchange;form.note='';form.type=e.type;showToast('已复制','info')}
+  function copyLast(){const e=sortedEntries.value[0];if(!e)return;form.date=e.date;form.amount=e.amount;form.rate=e.rate||'';form.exchange=e.exchange;form.note='';form.type=e.type;form.assetType=e.assetType||'';form.currency=e.currency||'CNY';showToast('已复制','info')}
   function removeEntry(id){if(!confirm('确认删除？'))return;entries.value=entries.value.filter(e=>e.id!==id);snap();save();showToast('已删除','success')}
   function updateField(id,key,val){const e=entries.value.find(x=>x.id===id);if(!e)return;if(key==='amount'||key==='rate')e[key]=val===''?'':Number(val);else e[key]=val;save()}
   function clearData(){if(!confirm('确认清空所有记录？'))return;snap();entries.value=[];save();showToast('已清空','success')}
@@ -1182,15 +1241,22 @@ setup(){
   // Period Stats
   const periodRows=computed(()=>{
     const map=new Map()
-    entries.value.forEach(e=>{const k=pKey(e.date,period.value);if(!k)return;if(!map.has(k))map.set(k,{key:k,inTotal:0,outTotal:0});const r=map.get(k);if(e.type==='入金')r.inTotal+=e.amount||0;else r.outTotal+=e.amount||0})
+    entries.value.forEach(e=>{const k=pKey(e.date,period.value);if(!k)return;if(!map.has(k))map.set(k,{key:k,inTotal:0,outTotal:0});const r=map.get(k);if(e.type==='入金')r.inTotal+=amountCNY(e);else r.outTotal+=amountCNY(e)})
     const rows=[...map.values()].sort((a,b)=>a.key<b.key?-1:1);let cum=0
     rows.forEach(r=>{r.net=r.outTotal-r.inTotal;cum+=r.net;r.cum=cum});return rows
   })
 
   const exchangeRows=computed(()=>{
     const map=new Map()
-    entries.value.forEach(e=>{const k=e.exchange||'未知';if(!map.has(k))map.set(k,{exchange:k,inTotal:0,outTotal:0});const r=map.get(k);if(e.type==='入金')r.inTotal+=e.amount||0;else r.outTotal+=e.amount||0})
-    return[...map.values()].map(r=>({...r,net:r.outTotal-r.inTotal})).sort((a,b)=>a.exchange<b.exchange?-1:1)
+    entries.value.forEach(e=>{const k=e.exchange||'未知';if(!map.has(k))map.set(k,{exchange:k,inTotal:0,outTotal:0});const r=map.get(k);if(e.type==='入金')r.inTotal+=amountCNY(e);else r.outTotal+=amountCNY(e)})
+    return[...map.values()].map(r=>({...r,net:r.outTotal-r.inTotal})).sort((a,b)=>b.inTotal-a.inTotal)
+  })
+  const assetTypeRows=computed(()=>{
+    const ORDER=['大A','美股','港股','加密货币','基金','黄金','期货','其他','']
+    const map=new Map()
+    entries.value.forEach(e=>{const k=e.assetType||'';if(!map.has(k))map.set(k,{assetType:k,inTotal:0,outTotal:0});const r=map.get(k);if(e.type==='入金')r.inTotal+=amountCNY(e);else r.outTotal+=amountCNY(e)})
+    const rows=[...map.values()].map(r=>({...r,net:r.outTotal-r.inTotal}))
+    return rows.sort((a,b)=>{const ia=ORDER.indexOf(a.assetType),ib=ORDER.indexOf(b.assetType);return(ia<0?99:ia)-(ib<0?99:ib)})
   })
 
   const periodCompare=computed(()=>{
@@ -1370,24 +1436,24 @@ setup(){
     if(!entries.value.length){showToast('无数据','info');return}
     const inR=[],outR=[],flowR=[]
     sortedEntries.value.forEach(e=>{
-      const base={'日期':e.date,'汇率':e.rate,'金额（元）':e.amount,'交易所':e.exchange,'类型':e.type}
-      flowR.push({...base,'备注':e.note,'方向金额':e.type==='出金'?e.amount:-e.amount,'月份(yyyy-MM)':e.date?e.date.slice(0,7):''})
-      if(e.type==='入金')inR.push({...base,'备注':e.note});else outR.push({...base,'收款渠道':e.note})
+      const base={'日期':e.date,'资产类型':e.assetType||'','账户/平台':e.exchange,'货币':e.currency||'CNY','金额':e.amount,'汇率':e.rate||'','折合CNY':amountCNY(e),'类型':e.type}
+      flowR.push({...base,'备注':e.note,'月份(yyyy-MM)':e.date?e.date.slice(0,7):''})
+      if(e.type==='入金')inR.push({...base,'投入理由':e.note});else outR.push({...base,'备注':e.note})
     })
     let cum=0;const mRows=[];const mm=new Map()
     entries.value.forEach(e=>{const k=e.date?e.date.slice(0,7):'';if(!k)return;if(!mm.has(k))mm.set(k,{m:k,i:0,o:0});const r=mm.get(k);e.type==='入金'?r.i+=e.amount||0:r.o+=e.amount||0})
     ;[...mm.values()].sort((a,b)=>a.m<b.m?-1:1).forEach(r=>{const n=r.o-r.i;cum+=n;mRows.push({'月份':r.m,'入金合计':r.i,'出金合计':r.o,'月度盈亏':n,'累计盈亏':cum})})
     const statR=[{'统计项':'总入金','金额（元）':totalIn.value},{'统计项':'总出金','金额（元）':totalOut.value},{'统计项':'净盈亏','金额（元）':netPL.value},{'统计项':'回本比例','金额（元）':roi.value}]
     const wb=XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(inR),'入金记录')
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(outR),'出金记录')
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(flowR),'流水记录')
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(statR),'出入金盈亏统计')
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(inR),'投入记录')
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(outR),'取出记录')
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(flowR),'全部流水')
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(statR),'盈亏总览')
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(mRows),'月度统计')
-    XLSX.writeFile(wb,'出入金统计导出_'+dayjs().format('YYYYMMDD_HHmm')+'.xlsx');showToast('已导出','success')
+    XLSX.writeFile(wb,'FlowLedger投记_'+dayjs().format('YYYYMMDD_HHmm')+'.xlsx');showToast('已导出','success')
   }
   function exportJSON(){
-    const b=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),entries:entries.value},null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='出入金备份_'+dayjs().format('YYYYMMDD_HHmm')+'.json';a.click();URL.revokeObjectURL(u);showToast('已导出','success')
+    const b=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),entries:entries.value},null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='FlowLedger备份_'+dayjs().format('YYYYMMDD_HHmm')+'.json';a.click();URL.revokeObjectURL(u);showToast('已导出','success')
   }
   function importExcel(ev){
     const f=ev.target.files[0];if(!f)return;snap();const rd=new FileReader()
@@ -1512,10 +1578,10 @@ setup(){
   })
 
   return{entries,sortedEntries,snapshots,period,mobileTab,showMobileAdd,showFilters,editingEntry,showSync,theme,toggleTheme,trendChart,weekdayChart,toast,form,filters,rules,syncCfg,syncStatus,reviewNote,reviewSavedAt,reviewChecklist,
-    totalIn,totalOut,netPL,roi,allExchanges,allMonths,matchedIds,matchCount,filteredStats,hasActiveFilter,activeFilterCount,periodRows,exchangeRows,periodCompare,largeTxList,insightSummary,insightAdvice,
+    totalIn,totalOut,netPL,roi,allExchanges,allAssetTypes,allMonths,matchedIds,matchCount,filteredStats,hasActiveFilter,activeFilterCount,periodRows,exchangeRows,assetTypeRows,periodCompare,largeTxList,insightSummary,insightAdvice,
     behaviorAnalysis,psychoTags,behaviorAdvice,
     monthlyBudget,saveBudget,curMonthIn,budgetRatio,
-    fmt,rowClass,toggleEx,clearFilters,scrollToFirstMatch,openEditModal,saveEditEntry,
+    fmt,amountCNY,rowClass,toggleEx,toggleAssetType,clearFilters,scrollToFirstMatch,openEditModal,saveEditEntry,
     groupedEntries,expandedMonths,toggleMonth,isMonthOpen,expandAllMonths,collapseAllMonths,
     addEntry,mobileAddEntry,copyLast,removeEntry,updateField,clearData,
     createSnap,restoreSnap,clearSnaps,
