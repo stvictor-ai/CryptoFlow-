@@ -1214,24 +1214,39 @@ setup(){
     if(!currency||currency==='CNY')return
     rateLoading.value=true
     try{
-      const sym=currency==='USDT'?'USD':currency
-      const res=await fetch(`https://api.frankfurter.app/latest?from=${sym}&to=CNY`)
-      if(!res.ok)throw new Error()
-      const data=await res.json()
-      const rate=data.rates?.CNY
+      const sym=(currency==='USDT'?'USD':currency).toLowerCase()
+      let rate=null
+      // 优先：jsdelivr CDN（国内可访问，每日更新）
+      try{
+        const res=await Promise.race([
+          fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${sym}.json`),
+          new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))
+        ])
+        if(res.ok){const data=await res.json();rate=data[sym]?.cny}
+      }catch(_){}
+      // 备用：frankfurter.app
+      if(!rate){
+        try{
+          const res=await Promise.race([
+            fetch(`https://api.frankfurter.app/latest?from=${sym.toUpperCase()}&to=CNY`),
+            new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))
+          ])
+          if(res.ok){const data=await res.json();rate=data.rates?.CNY}
+        }catch(_){}
+      }
       if(rate){
         const rounded=Math.round(rate*10000)/10000
         if(target==='form')form.rate=String(rounded)
         else if(target==='edit'&&editingEntry.value)editingEntry.value.rate=String(rounded)
-        showToast(`1 ${currency} ≈ ${rounded} CNY`,'success')
-      }
+        showToast(`1 ${currency} ≈ ${rounded} CNY（实时）`,'success')
+      }else throw new Error('no rate')
     }catch(e){
       const fallback=RATE_FALLBACK[currency]
       if(fallback){
         if(target==='form')form.rate=String(fallback)
         else if(target==='edit'&&editingEntry.value)editingEntry.value.rate=String(fallback)
-        showToast('网络不可用，已使用参考汇率','info')
-      }
+        showToast(`网络不可用，已填入参考汇率 ${fallback}`,'info')
+      }else showToast('获取汇率失败，请手动填写','error')
     }finally{rateLoading.value=false}
   }
   const totalIn=computed(()=>entries.value.filter(e=>e.type==='入金').reduce((s,e)=>s+amountCNY(e),0))
